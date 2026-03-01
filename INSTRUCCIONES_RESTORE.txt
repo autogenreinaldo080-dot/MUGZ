@@ -1,0 +1,86 @@
+========================================
+MÉTELE UN GOL AL CÁNCER - APP MÓVIL
+Instrucciones para Restaurar el Proyecto
+========================================
+
+## CONTENIDO DEL BACKUP
+
+Este ZIP contiene:
+- /src/app/page.tsx - Componente principal de la aplicación
+- /src/app/layout.tsx - Layout de la aplicación
+- /src/app/globals.css - Estilos globales (tema oscuro)
+- /public/images/ - Todas las imágenes (logos, fotos, QR)
+- /src/components/ui/ - Componentes de shadcn/ui
+- package.json - Dependencias del proyecto
+
+## PASOS PARA RESTAURAR
+
+1. Descomprimir el archivo ZIP en tu computadora
+
+2. Abrir terminal en la carpeta del proyecto
+
+3. Instalar dependencias:
+   npm install
+   # o si tienes bun:
+   bun install
+
+4. Ejecutar el proyecto:
+   npm run dev
+   # o
+   bun run dev
+
+5. Abrir en navegador: http://localhost:3000
+
+## TECNOLOGÍAS UTILIZADAS
+
+- Next.js 15 (App Router)
+- React 18
+- TypeScript
+- Tailwind CSS
+- shadcn/ui (componentes)
+- Lucide React (iconos)
+
+## DEPENDENCIAS PRINCIPALES
+
+{
+  "next": "^15.x",
+  "react": "^18.x",
+  "typescript": "^5.x",
+  "tailwindcss": "^3.x",
+  "@radix-ui/*": "varios componentes",
+  "lucide-react": "^0.x"
+}
+
+## PARA ACCESO MÓVIL
+
+Opción A - Usar Cloudflare Tunnel:
+1. Instalar cloudflared
+2. Ejecutar: cloudflared tunnel --url http://localhost:3000
+3. Escanear el QR o usar la URL generada
+
+Opción B - Usar ngrok:
+1. Instalar ngrok
+2. Ejecutar: ngrok http 3000
+3. Usar la URL generada
+
+Opción C - Misma red WiFi:
+1. Ejecutar: npm run dev -- -H 0.0.0.0
+2. Acceder desde el celular usando la IP de tu computadora
+   (ejemplo: http://192.168.1.100:3000)
+
+## ESTRUCTURA DEL PROYECTO
+
+metelegol-app/
+├── src/
+│   ├── app/
+│   │   ├── page.tsx          ← COMPONENTE PRINCIPAL
+│   │   ├── layout.tsx
+│   │   └── globals.css
+│   └── components/
+│       └── ui/               ← Componentes shadcn
+├── public/
+│   └── images/               ← Logos, fotos, QR
+├── package.json
+└── tailwind.config.ts
+
+== FIN ==

@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  nombre        String
+  rut           String    @unique
+  edad          Int
+  telefono      String
+  email         String    @unique
+  comuna        String
+  puntos        Int       @default(0)
+  club          String?
+  esSocioCDI    Boolean   @default(false)
+  examenesDone  Int       @default(0)
+  badges        Badge[]
+  operativos    Operativo[] @relation("UserOperativos")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Club {
+  id        String   @id @default(cuid())
+  nombre    String   @unique
+  puntos    Int      @default(0)
+  miembros  Int      @default(0)
+  logo      String?
+}
+
+model Operativo {
+  id          String   @id @default(cuid())
+  fecha       String
+  hora        String
+  lugar       String
+  direccion   String
+  imagen      String
+  cupos       Int      @default(50)
+  usuarios    User[]   @relation("UserOperativos")
+}
+
+model Badge {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  icon        String
+  color       String
+  users       User[]
+}
