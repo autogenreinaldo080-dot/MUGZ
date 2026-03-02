@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Users, Camera, MapPin, Download, CheckCircle, XCircle, Search, ShieldAlert, Activity } from 'lucide-react';
 import { updateUserStatus, updatePhotoStatus } from '@/app/actions/admin-data';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 type User = any; // simplified for this component
 type Photo = any;
