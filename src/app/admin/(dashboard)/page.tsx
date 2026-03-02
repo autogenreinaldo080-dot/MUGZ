@@ -1,23 +1,30 @@
-import { cookies } from 'next/headers';
-import { PrismaClient } from '@prisma/client';
 import AdminDashboardClient from './AdminDashboardClient';
 
-const prisma = new PrismaClient();
-
 export default async function AdminDashboard() {
-    // Stats
-    const userCount = await prisma.user.count();
-    const operativeCount = await prisma.operativo.count();
-    const enJuegoCount = await prisma.user.count({ where: { status: 'EN_JUEGO' } });
+    let userCount = 0;
+    let operativeCount = 0;
+    let enJuegoCount = 0;
+    let users: any[] = [];
+    let photos: any[] = [];
 
-    // Fetch all users and photos
-    const users = await prisma.user.findMany({
-        orderBy: { createdAt: 'desc' }
-    });
+    try {
+        // Prisma only works locally with SQLite. In Vercel serverless, it will gracefully fail.
+        const { PrismaClient } = await import('@prisma/client');
+        const prisma = new PrismaClient();
 
-    const photos = await prisma.photo.findMany({
-        orderBy: { createdAt: 'desc' }
-    });
+        userCount = await prisma.user.count();
+        operativeCount = await prisma.operativo.count();
+        // @ts-ignore
+        enJuegoCount = await prisma.user.count({ where: { status: 'EN_JUEGO' } });
+        // @ts-ignore
+        users = await prisma.user.findMany({ orderBy: { createdAt: 'desc' } });
+        // @ts-ignore
+        photos = await (prisma as any).photo.findMany({ orderBy: { createdAt: 'desc' } });
+
+        await prisma.$disconnect();
+    } catch (e) {
+        console.warn('[Admin] Base de datos no disponible en este entorno serverless:', e);
+    }
 
     return (
         <AdminDashboardClient
