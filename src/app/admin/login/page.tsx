@@ -20,17 +20,20 @@ export default function AdminLogin() {
         setError('');
 
         try {
-            // Import the server action dynamically to avoid boundary errors
-            const { loginAdmin } = await import('@/app/actions/admin');
-            const result = await loginAdmin(password);
+            const res = await fetch('/api/admin/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password }),
+            });
+            const data = await res.json();
 
-            if (result.success) {
+            if (data.success) {
                 router.push('/admin');
                 router.refresh();
             } else {
-                setError(result.error || 'Autenticación fallida');
+                setError(data.error || 'Contraseña incorrecta');
             }
-        } catch (err) {
+        } catch {
             setError('Ocurrió un error inesperado');
         } finally {
             setLoading(false);
