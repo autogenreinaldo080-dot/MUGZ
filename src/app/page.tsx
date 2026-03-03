@@ -323,10 +323,7 @@ export default function MeteleGolApp() {
             {/* Logos SESP e Impacta - Más grandes para +40 y sin fondo blanco */}
             {/* Logo único o simplificado en Header si se desea, o dejar vacío si están en el Hero */}
             <div className="flex items-center gap-2 shrink-0">
-              {/* Dejamos un identificador mínimo para cuando se hace scroll */}
-              <div className="bg-primary/20 px-2 py-1 rounded border border-primary/30">
-                <span className="text-[10px] font-black text-white italic uppercase tracking-tighter">MUG Z</span>
-              </div>
+              {/* Espacio reservado para alineación o logos futuros */}
             </div>
 
             <div className="flex items-center gap-1 sm:gap-2 shrink">
@@ -340,8 +337,8 @@ export default function MeteleGolApp() {
               ) : (
                 <div className="flex items-center gap-1 sm:gap-2">
                   <a href="/admin/login">
-                    <Button size="sm" variant="outline" className="border-border hover:bg-white/5 font-bold px-4 opacity-70">
-                      INGRESO VAR
+                    <Button size="sm" className="bg-primary/20 hover:bg-primary/30 border border-primary/50 text-white font-bold px-4 backdrop-blur-sm shadow-[0_0_15px_rgba(0,212,255,0.3)] hover:shadow-[0_0_25px_rgba(0,212,255,0.5)] transition-all duration-300">
+                      🔐 INGRESO VAR
                     </Button>
                   </a>
                 </div>

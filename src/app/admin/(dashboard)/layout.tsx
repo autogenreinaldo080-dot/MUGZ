@@ -21,8 +21,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                         </div>
                         <span className="font-bold text-lg hidden sm:block">Administración MUG Z</span>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm text-muted-foreground hidden sm:block">SuperAdmin</span>
+                    <div className="flex items-center gap-2">
+                        {/* Botón Volver a la APP */}
+                        <a href="/" className="flex items-center gap-1.5 text-sm font-semibold text-cyan-400 hover:text-cyan-200 border border-cyan-400/40 rounded-full px-3 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 transition-all duration-200">
+                            ⚽ Volver a la APP
+                        </a>
+                        <span className="text-border">|</span>
+                        <span className="text-xs text-muted-foreground hidden sm:block">SuperAdmin</span>
                         <form action={logoutAdmin}>
                             <button type="submit" className="text-sm font-medium text-destructive hover:underline">
                                 Cerrar Sesión
