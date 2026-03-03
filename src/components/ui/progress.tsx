@@ -10,6 +10,14 @@ function Progress({
   value,
   ...props
 }: React.ComponentProps<typeof ProgressPrimitive.Root>) {
+  const indicatorRef = React.useRef<HTMLDivElement>(null)
+
+  React.useLayoutEffect(() => {
+    if (indicatorRef.current) {
+      indicatorRef.current.style.transform = `translateX(-${100 - (value || 0)}%)`
+    }
+  }, [value])
+
   return (
     <ProgressPrimitive.Root
       data-slot="progress"
@@ -20,9 +28,9 @@ function Progress({
       {...props}
     >
       <ProgressPrimitive.Indicator
+        ref={indicatorRef}
         data-slot="progress-indicator"
         className="bg-primary h-full w-full flex-1 transition-all"
-        style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
       />
     </ProgressPrimitive.Root>
   )

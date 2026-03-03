@@ -86,13 +86,13 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
             ([theme, prefix]) => `
 ${prefix} [data-chart=${id}] {
 ${colorConfig
-  .map(([key, itemConfig]) => {
-    const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
-  })
-  .join("\n")}
+                .map(([key, itemConfig]) => {
+                  const color =
+                    itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+                    itemConfig.color
+                  return color ? `  --color-${key}: ${color};` : null
+                })
+                .join("\n")}
 }
 `
           )
@@ -103,6 +103,33 @@ ${colorConfig
 }
 
 const ChartTooltip = RechartsPrimitive.Tooltip
+
+// Helper component for tooltip indicator to avoid inline styles
+function ChartIndicator({ color, indicator, nestLabel }: { color?: string; indicator: string; nestLabel?: boolean }) {
+  const ref = React.useRef<HTMLDivElement>(null)
+  React.useLayoutEffect(() => {
+    if (ref.current && color) {
+      ref.current.style.setProperty("--color-bg", color)
+      ref.current.style.setProperty("--color-border", color)
+    }
+  }, [color])
+
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "shrink-0 rounded-[2px] border-(--color-border) bg-(--color-bg)",
+        {
+          "h-2.5 w-2.5": indicator === "dot",
+          "w-1": indicator === "line",
+          "w-0 border-[1.5px] border-dashed bg-transparent":
+            indicator === "dashed",
+          "my-0.5": nestLabel && indicator === "dashed",
+        }
+      )}
+    />
+  )
+}
 
 function ChartTooltipContent({
   active,
@@ -200,24 +227,7 @@ function ChartTooltipContent({
                     <itemConfig.icon />
                   ) : (
                     !hideIndicator && (
-                      <div
-                        className={cn(
-                          "shrink-0 rounded-[2px] border-(--color-border) bg-(--color-bg)",
-                          {
-                            "h-2.5 w-2.5": indicator === "dot",
-                            "w-1": indicator === "line",
-                            "w-0 border-[1.5px] border-dashed bg-transparent":
-                              indicator === "dashed",
-                            "my-0.5": nestLabel && indicator === "dashed",
-                          }
-                        )}
-                        style={
-                          {
-                            "--color-bg": indicatorColor,
-                            "--color-border": indicatorColor,
-                          } as React.CSSProperties
-                        }
-                      />
+                      <ChartIndicator color={indicatorColor} indicator={indicator} nestLabel={nestLabel} />
                     )
                   )}
                   <div
@@ -249,6 +259,17 @@ function ChartTooltipContent({
 }
 
 const ChartLegend = RechartsPrimitive.Legend
+
+// Helper component for legend indicator to avoid inline styles
+function LegendIndicator({ color }: { color?: string }) {
+  const ref = React.useRef<HTMLDivElement>(null)
+  React.useLayoutEffect(() => {
+    if (ref.current && color) {
+      ref.current.style.backgroundColor = color
+    }
+  }, [color])
+  return <div ref={ref} className="h-2 w-2 shrink-0 rounded-[2px]" />
+}
 
 function ChartLegendContent({
   className,
@@ -289,12 +310,7 @@ function ChartLegendContent({
             {itemConfig?.icon && !hideIcon ? (
               <itemConfig.icon />
             ) : (
-              <div
-                className="h-2 w-2 shrink-0 rounded-[2px]"
-                style={{
-                  backgroundColor: item.color,
-                }}
-              />
+              <LegendIndicator color={item.color} />
             )}
             {itemConfig?.label}
           </div>
@@ -316,8 +332,8 @@ function getPayloadConfigFromPayload(
 
   const payloadPayload =
     "payload" in payload &&
-    typeof payload.payload === "object" &&
-    payload.payload !== null
+      typeof payload.payload === "object" &&
+      payload.payload !== null
       ? payload.payload
       : undefined
 

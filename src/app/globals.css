@@ -208,38 +208,14 @@
   }
 }
 
-/* Glass effect */
-.glass {
-  background: rgba(22, 27, 34, 0.8);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
+
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #00D4FF 0%, #10B981 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  @apply bg-gradient-to-br from-[#00D4FF] to-[#10B981] bg-clip-text text-transparent;
 }
 
-/* Button glow effect */
-.btn-glow {
-  position: relative;
-  overflow: hidden;
-}
-
-.btn-glow::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s;
-}
-
-.btn-glow:hover::before {
-  left: 100%;
+/* Glass effect */
+.glass {
+  @apply bg-[#161B22]/80 backdrop-blur-[10px];
 }

@@ -126,18 +126,23 @@ function SidebarProvider({
     [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
   )
 
+  const wrapperRef = React.useRef<HTMLDivElement>(null)
+  React.useLayoutEffect(() => {
+    if (wrapperRef.current) {
+      wrapperRef.current.style.setProperty("--sidebar-width", SIDEBAR_WIDTH)
+      wrapperRef.current.style.setProperty("--sidebar-width-icon", SIDEBAR_WIDTH_ICON)
+      if (style) {
+        Object.assign(wrapperRef.current.style, style)
+      }
+    }
+  }, [style])
+
   return (
     <SidebarContext.Provider value={contextValue}>
       <TooltipProvider delayDuration={0}>
         <div
+          ref={wrapperRef}
           data-slot="sidebar-wrapper"
-          style={
-            {
-              "--sidebar-width": SIDEBAR_WIDTH,
-              "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
-              ...style,
-            } as React.CSSProperties
-          }
           className={cn(
             "group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full",
             className
@@ -180,19 +185,22 @@ function Sidebar({
     )
   }
 
+  const sheetRef = React.useRef<HTMLDivElement>(null)
+  React.useLayoutEffect(() => {
+    if (sheetRef.current) {
+      sheetRef.current.style.setProperty("--sidebar-width", SIDEBAR_WIDTH_MOBILE)
+    }
+  }, [])
+
   if (isMobile) {
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
         <SheetContent
+          ref={sheetRef}
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
           className="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
-          style={
-            {
-              "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
-            } as React.CSSProperties
-          }
           side={side}
         >
           <SheetHeader className="sr-only">
@@ -569,7 +577,7 @@ function SidebarMenuAction({
         "peer-data-[size=lg]/menu-button:top-2.5",
         "group-data-[collapsible=icon]:hidden",
         showOnHover &&
-          "peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0",
+        "peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0",
         className
       )}
       {...props}
@@ -625,13 +633,11 @@ function SidebarMenuSkeleton({
         />
       )}
       <Skeleton
-        className="h-4 max-w-(--skeleton-width) flex-1"
+        className={cn("h-4 flex-1", `w-[var(--skeleton-width)]`)}
         data-sidebar="menu-skeleton-text"
-        style={
-          {
-            "--skeleton-width": width,
-          } as React.CSSProperties
-        }
+        ref={(el) => {
+          if (el) el.style.setProperty("--skeleton-width", width)
+        }}
       />
     </div>
   )

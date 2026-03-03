@@ -1,3 +1,11 @@
 node_modules
 .next/
-.next/
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+
+# IDE settings
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json

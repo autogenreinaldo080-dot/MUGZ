@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import Image from 'next/image'
 import {
   Home, Calendar, FileText, User, Menu, ChevronRight,
@@ -9,7 +9,7 @@ import {
   QrCode, Download, Bell, Settings, HelpCircle,
   Play, Info, Heart, Activity, Camera,
   LogOut, Share2, MessageCircle, ThumbsUp,
-  UserPlus, ArrowRight, Zap, Mail, ExternalLink,
+  UserPlus, ArrowRight, Mail, ExternalLink,
   CircleUser, BookOpen, Scale
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -119,6 +119,41 @@ const auspiciadores = [
   { nombre: 'GORE Tarapacá', logo: '/images/logo_gore.png', link: '#' },
   { nombre: 'AFI', logo: '/images/logo_afi.png', link: '#' },
 ]
+
+// Helper: Ref-based badge item component to avoid inline style warnings
+function BadgeItem({ badge, earned }: { badge: any; earned: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const iconRef = useRef<SVGSVGElement>(null);
+
+  useLayoutEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.style.backgroundColor = earned ? `${badge.color}20` : 'rgba(255,255,255,0.05)';
+      containerRef.current.style.border = `2px solid ${earned ? badge.color : 'transparent'}`;
+    }
+    if (iconRef.current) {
+      // @ts-ignore - style property exists on SVGElement but TS might be picky
+      iconRef.current.style.color = earned ? badge.color : 'currentColor';
+    }
+  }, [earned, badge.color]);
+
+  return (
+    <Card className={`bg-card/90 border-2 transition-all duration-500 overflow-hidden relative group ${earned ? 'border-success/30 shadow-success/5' : 'border-white/5 opacity-40 grayscale'}`}>
+      {earned && <div className="absolute inset-0 bg-gradient-to-b from-success/5 to-transparent pointer-events-none" />}
+      <CardContent className="py-4 relative z-10">
+        <div className="flex flex-col items-center text-center gap-2">
+          <div ref={containerRef} className="w-14 h-14 rounded-full flex items-center justify-center relative">
+            <badge.icon ref={iconRef} className={`h-7 w-7 ${earned ? 'animate-pulse-slow' : ''}`} />
+            {earned && <div className="absolute -top-1 -right-1 bg-success rounded-full p-1"><Check className="w-2 h-2 text-white" /></div>}
+          </div>
+          <div>
+            <p className="font-black text-[11px] text-white uppercase leading-tight">{badge.name}</p>
+            <p className="text-[9px] text-muted-foreground mt-1 leading-tight font-medium">{badge.description}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 // ========== COMPONENTE PRINCIPAL ==========
 export default function MeteleGolApp() {
@@ -1082,27 +1117,9 @@ export default function MeteleGolApp() {
                       <Crown className="w-5 h-5 text-warning" /> Vitrina de Trofeos
                     </h3>
                     <div className="grid grid-cols-2 gap-3">
-                      {badges.map((badge) => {
-                        const earned = user.badges.includes(badge.id)
-                        return (
-                          <Card key={badge.id} className={`bg-card/90 border-2 transition-all duration-500 overflow-hidden relative group ${earned ? 'border-success/30 shadow-success/5' : 'border-white/5 opacity-40 grayscale'}`}>
-                            {earned && <div className="absolute inset-0 bg-gradient-to-b from-success/5 to-transparent pointer-events-none" />}
-                            <CardContent className="py-4 relative z-10">
-                              <div className="flex flex-col items-center text-center gap-2">
-                                <div className="w-14 h-14 rounded-full flex items-center justify-center relative"
-                                  style={{ backgroundColor: earned ? `${badge.color}20` : 'rgba(255,255,255,0.05)', border: `2px solid ${earned ? badge.color : 'transparent'}` }}>
-                                  <badge.icon className={`h-7 w-7 ${earned ? 'animate-pulse-slow' : ''}`} style={{ color: earned ? badge.color : 'currentColor' }} />
-                                  {earned && <div className="absolute -top-1 -right-1 bg-success rounded-full p-1"><Check className="w-2 h-2 text-white" /></div>}
-                                </div>
-                                <div>
-                                  <p className="font-black text-[11px] text-white uppercase leading-tight">{badge.name}</p>
-                                  <p className="text-[9px] text-muted-foreground mt-1 leading-tight font-medium">{badge.description}</p>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )
-                      })}
+                      {badges.map((badge) => (
+                        <BadgeItem key={badge.id} badge={badge} earned={user.badges.includes(badge.id)} />
+                      ))}
                     </div>
                   </div>
 

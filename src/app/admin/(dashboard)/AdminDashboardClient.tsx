@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useLayoutEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,28 @@ interface AdminDashboardClientProps {
     stats: any;
 }
 
+// Helper: Ref-based width component to avoid inline style warnings
+function BarEffect({ pct, className }: { pct: number; className: string }) {
+    const ref = useRef<HTMLDivElement>(null);
+    useLayoutEffect(() => {
+        if (ref.current) {
+            ref.current.style.width = `${pct}%`;
+        }
+    }, [pct]);
+    return <div ref={ref} className={className} />;
+}
+
 // Helper: Progress bar component
 function StatBar({ label, value, total, color = 'bg-primary' }: { label: string; value: number; total: number; color?: string }) {
     const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+    const barRef = useRef<HTMLDivElement>(null);
+
+    useLayoutEffect(() => {
+        if (barRef.current) {
+            barRef.current.style.width = `${pct}%`;
+        }
+    }, [pct]);
+
     return (
         <div className="space-y-1">
             <div className="flex justify-between text-sm">
@@ -29,7 +48,7 @@ function StatBar({ label, value, total, color = 'bg-primary' }: { label: string;
                 <span className="text-muted-foreground shrink-0">{value} <span className="text-xs">({pct}%)</span></span>
             </div>
             <div className="h-2 bg-border rounded-full overflow-hidden">
-                <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
+                <div ref={barRef} className={`h-full ${color} rounded-full transition-all duration-500`} />
             </div>
         </div>
     );
@@ -207,7 +226,10 @@ export default function AdminDashboardClient({ initialUsers, initialPhotos, stat
                                 <div className="text-6xl font-black text-primary">{estadisticas.tasaConversion}%</div>
                                 <p className="text-muted-foreground text-sm mt-2">{estadisticas.enJuego} de {estadisticas.total} inscritos ya tienen su examen PSA validado</p>
                                 <div className="h-3 bg-border rounded-full overflow-hidden mt-4 max-w-md mx-auto">
-                                    <div className="h-full bg-gradient-to-r from-primary to-success rounded-full transition-all duration-1000" style={{ width: `${estadisticas.tasaConversion}%` }} />
+                                    <BarEffect
+                                        pct={estadisticas.tasaConversion}
+                                        className="h-full bg-gradient-to-r from-primary to-success rounded-full transition-all duration-1000"
+                                    />
                                 </div>
                             </div>
 
