@@ -251,7 +251,7 @@ export default function MeteleGolApp() {
 
   const handleShare = () => {
     if (!user) {
-      toast({ title: "Debes iniciar sesión", description: "Inicia sesión para ganar puntos compartiendo.", variant: "destructive" })
+      toast({ title: "Debes iniciar sesión", description: "Inicia sesión para compartir y participar del gran equipo del norte.", variant: "destructive" })
       return
     }
 
@@ -266,7 +266,7 @@ export default function MeteleGolApp() {
       })
 
       // Open WhatsApp sharing link
-      const text = encodeURIComponent("¡Únete a 'Métele un Gol al Cáncer'! Registra tu examen preventivo y suma puntos para tu club. ⚽🇨🇱")
+      const text = encodeURIComponent("¡Únete a 'Métele un Gol al Cáncer'! Registra tu examen preventivo y suma tu apoyo al equipo local. ⚽🏆")
       window.open(`https://wa.me/?text=${text}`, '_blank')
     }, 1500)
   }
