@@ -724,7 +724,7 @@ export default function MeteleGolApp() {
                         ⚽ ¡Fichar ahora mismo!
                       </Button>
                       <Button variant="outline" className="flex-1 border-primary/50 text-white font-bold py-6 text-lg uppercase" onClick={() => setShowLogin(true)}>
-                        Ya estoy fichado
+                        Soy del equipo
                       </Button>
                     </AlertDescription>
                   </div>
@@ -917,7 +917,7 @@ export default function MeteleGolApp() {
                       <UserPlus className="w-5 h-5 mr-3" /> Fichar
                     </Button>
                     <Button variant="outline" onClick={() => setShowLogin(true)}>
-                      <LogOut className="w-4 h-4 mr-2" /> Ya tengo cuenta
+                      <LogOut className="w-4 h-4 mr-2" /> Soy del equipo
                     </Button>
                   </div>
                 </div>
