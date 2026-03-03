@@ -10,7 +10,7 @@ import {
   Play, Info, Heart, Activity, Camera,
   LogOut, Share2, MessageCircle, ThumbsUp,
   UserPlus, ArrowRight, Zap, Mail, ExternalLink,
-  CircleUser
+  CircleUser, BookOpen, Scale
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -732,11 +732,13 @@ export default function MeteleGolApp() {
               )}
 
               <Tabs defaultValue="info" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 bg-card/80">
-                  <TabsTrigger value="info">Info</TabsTrigger>
-                  <TabsTrigger value="psa">PSA</TabsTrigger>
-                  <TabsTrigger value="riesgo">Riesgo</TabsTrigger>
-                  <TabsTrigger value="faq">FAQ</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 bg-card/80 h-auto gap-1 p-1">
+                  <TabsTrigger value="info" className="text-[10px] uppercase font-bold">Info</TabsTrigger>
+                  <TabsTrigger value="psa" className="text-[10px] uppercase font-bold">PSA</TabsTrigger>
+                  <TabsTrigger value="riesgo" className="text-[10px] uppercase font-bold">Riesgo</TabsTrigger>
+                  <TabsTrigger value="faq" className="text-[10px] uppercase font-bold">FAQ</TabsTrigger>
+                  <TabsTrigger value="manual" className="text-[10px] uppercase font-bold">Manual</TabsTrigger>
+                  <TabsTrigger value="legal" className="text-[10px] uppercase font-bold">Legal</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="info" className="space-y-4 mt-4">
@@ -857,6 +859,72 @@ export default function MeteleGolApp() {
                       </CardContent>
                     </Card>
                   ))}
+                </TabsContent>
+
+                <TabsContent value="manual" className="mt-4">
+                  <Card className="bg-card/90 border-border overflow-hidden">
+                    <CardHeader className="bg-primary/5 border-b border-border/50">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <BookOpen className="h-5 w-5 text-primary" /> Manual de Usuario
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-6 space-y-4">
+                      <div className="space-y-4 text-sm">
+                        <div className="flex gap-3">
+                          <div className="bg-primary/10 p-2 rounded-lg h-fit text-primary font-black italic text-xs">01</div>
+                          <div>
+                            <p className="font-black text-white uppercase italic">Fichaje (Registro)</p>
+                            <p className="text-muted-foreground text-xs">Completa tu ficha técnica para saltar a la cancha y participar en sorteos.</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <div className="bg-primary/10 p-2 rounded-lg h-fit text-primary font-black italic text-xs">02</div>
+                          <div>
+                            <p className="font-black text-white uppercase italic">Agendamiento</p>
+                            <p className="text-muted-foreground text-xs">Selecciona un operativo en "1er Tiempo" y asegura tu titularidad.</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <div className="bg-primary/10 p-2 rounded-lg h-fit text-primary font-black italic text-xs">03</div>
+                          <div>
+                            <p className="font-black text-white uppercase italic">Premios</p>
+                            <p className="text-muted-foreground text-xs">Cada examen validado por el VAR médico te da acceso al sorteo final.</p>
+                          </div>
+                        </div>
+                      </div>
+                      <Separator className="bg-border/50" />
+                      <Button variant="outline" className="w-full border-primary/30 group" asChild>
+                        <a href="#" className="flex items-center justify-center gap-2">
+                          <Download className="h-4 w-4 group-hover:animate-bounce" /> Descargar Manual Completo (PDF)
+                        </a>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="legal" className="mt-4">
+                  <Card className="bg-card/90 border-border overflow-hidden">
+                    <CardHeader className="bg-secondary/10 border-b border-border/50">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Scale className="h-5 w-5 text-secondary" /> Propiedad y Uso
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-6 space-y-4 text-xs leading-relaxed text-muted-foreground">
+                      <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                        <p className="font-bold text-white mb-2 uppercase tracking-widest text-[10px]">Propiedad Intelectual</p>
+                        <p>MUG Z (Métele un Gol al Cáncer) y sus contenidos son propiedad exclusiva de la <strong>Fundación SESP</strong> e <strong>Impacta</strong>.</p>
+                      </div>
+                      <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                        <p className="font-bold text-white mb-2 uppercase tracking-widest text-[10px]">Uso de la Aplicación</p>
+                        <p>Uso gratuito para fines de prevención de salud regional. Prohibida su reproducción comercial total o parcial.</p>
+                      </div>
+                      <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                        <p className="font-bold text-white mb-2 uppercase tracking-widest text-[10px]">Responsabilidad Técnica</p>
+                        <p>La app es una herramienta de gestión. Los resultados clínicos son responsabilidad de las entidades de salud facultadas.</p>
+                      </div>
+                      <p className="text-center italic mt-4 opacity-50">© 2026 Fundación SESP / Impacta. Todos los derechos reservados.</p>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
               </Tabs>
             </div>
