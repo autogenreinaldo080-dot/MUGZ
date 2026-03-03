@@ -131,14 +131,13 @@ export default function MeteleGolApp() {
   const [user, setUser] = useState<UserData | null>(null)
   const [rankingType, setRankingType] = useState<'jugador' | 'club'>('jugador')
   const leaderboard = [
-    { rank: 1, team: 'Club Deportes Iquique', exams: 15, logo: '/images/logo_cdi.png' },
-    { rank: 2, team: 'Deportivo Cavancha', exams: 12, logo: '/images/logo_cdi.png' },
-    { rank: 3, team: 'Unión Morro', exams: 10, logo: '/images/logo_cdi.png' },
-    { rank: 4, team: 'Estrella de Chile', exams: 8, logo: '/images/logo_cdi.png' },
-    { rank: 5, team: 'Iquique Wanderers', exams: 6, logo: '/images/logo_cdi.png' },
+    { rank: 1, team: 'Deportivo Cavancha', exams: 12, logo: '/images/logo_cdi.png' },
+    { rank: 2, team: 'Unión Morro', exams: 10, logo: '/images/logo_cdi.png' },
+    { rank: 3, team: 'Estrella de Chile', exams: 8, logo: '/images/logo_cdi.png' },
+    { rank: 4, team: 'Iquique Wanderers', exams: 6, logo: '/images/logo_cdi.png' },
+    { rank: 5, team: 'Liga Pozo Al Monte', exams: 4, logo: '/images/logo_cdi.png' },
   ]
   const clubLeaderboard = [
-    { id: 1, name: 'Club Deportes Iquique', exams: 15 },
     { id: 2, name: 'Deportivo Cavancha', exams: 12 },
     { id: 3, name: 'Unión Morro', exams: 8 },
     { id: 4, name: 'Estrella de Chile', exams: 6 },
@@ -644,13 +643,15 @@ export default function MeteleGolApp() {
               </div>
 
               {!user && (
-                <Alert className="border-primary/30 bg-primary/5">
-                  <UserPlus className="h-4 w-4 text-primary" />
-                  <AlertTitle className="text-primary">Inscríbete primero</AlertTitle>
-                  <AlertDescription>
-                    Para agendar tu examen, primero debes{' '}
-                    <Button variant="link" className="p-0 h-auto text-primary" onClick={() => setShowRegistration(true)}>crear una cuenta</Button>
-                  </AlertDescription>
+                <Alert className="border-primary/30 bg-primary/5 py-6">
+                  <UserPlus className="h-6 w-6 text-primary" />
+                  <div className="flex flex-col gap-2">
+                    <AlertTitle className="text-primary text-xl font-black uppercase italic">¡Ficha por tu equipo!</AlertTitle>
+                    <AlertDescription>
+                      Para agendar tu examen y participar en los sorteos, primero debes{' '}
+                      <Button variant="link" className="p-0 h-auto text-primary font-black uppercase underline" onClick={() => setShowRegistration(true)}>Fichar ahora</Button>
+                    </AlertDescription>
+                  </div>
                 </Alert>
               )}
 
@@ -714,13 +715,19 @@ export default function MeteleGolApp() {
               </div>
 
               {!user && (
-                <Alert className="border-primary/30 bg-primary/5">
-                  <Info className="h-4 w-4 text-primary" />
-                  <AlertTitle>Accede a tu cuenta</AlertTitle>
-                  <AlertDescription className="flex gap-2 mt-2">
-                    <Button size="sm" className="bg-primary text-primary-foreground" onClick={() => setShowLogin(true)}>Acceder</Button>
-                    <Button size="sm" variant="outline" onClick={() => setShowRegistration(true)}>Crear cuenta</Button>
-                  </AlertDescription>
+                <Alert className="border-primary/30 bg-primary/5 py-6">
+                  <Info className="h-6 w-6 text-primary" />
+                  <div className="flex flex-col gap-4">
+                    <AlertTitle className="text-primary text-xl font-black uppercase italic">Únete a la Previa</AlertTitle>
+                    <AlertDescription className="flex flex-col sm:flex-row gap-3">
+                      <Button className="flex-1 bg-primary text-primary-foreground font-black py-6 text-lg uppercase shadow-lg shadow-primary/20" onClick={() => setShowRegistration(true)}>
+                        ⚽ ¡Fichar ahora mismo!
+                      </Button>
+                      <Button variant="outline" className="flex-1 border-primary/50 text-white font-bold py-6 text-lg uppercase" onClick={() => setShowLogin(true)}>
+                        Ya estoy fichado
+                      </Button>
+                    </AlertDescription>
+                  </div>
                 </Alert>
               )}
 
@@ -906,8 +913,8 @@ export default function MeteleGolApp() {
                   <h2 className="text-xl font-semibold mb-2">No has iniciado sesión</h2>
                   <p className="text-muted-foreground mb-6">Inscríbete o accede a tu cuenta para ver tu perfil</p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button className="bg-primary text-primary-foreground" onClick={() => setShowRegistration(true)}>
-                      <UserPlus className="w-4 h-4 mr-2" /> Inscribirme
+                    <Button className="bg-primary text-primary-foreground text-lg py-6 px-8 rounded-xl font-black shadow-lg shadow-primary/20 uppercase" onClick={() => setShowRegistration(true)}>
+                      <UserPlus className="w-5 h-5 mr-3" /> Fichar
                     </Button>
                     <Button variant="outline" onClick={() => setShowLogin(true)}>
                       <LogOut className="w-4 h-4 mr-2" /> Ya tengo cuenta
@@ -1187,7 +1194,6 @@ export default function MeteleGolApp() {
                 <Select onValueChange={(value) => setFormData({ ...formData, club: value })}>
                   <SelectTrigger className="bg-input border-border"><SelectValue placeholder="Selecciona tu club" /></SelectTrigger>
                   <SelectContent className="bg-card border-border">
-                    <SelectItem value="cdi">Club Deportes Iquique</SelectItem>
                     <SelectItem value="cavancha">Deportivo Cavancha</SelectItem>
                     <SelectItem value="union">Unión Morro</SelectItem>
                     <SelectItem value="estella">Estrella de Chile</SelectItem>
