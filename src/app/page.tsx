@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef, useLayoutEffect } from 'react'
+import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
+import confetti from 'canvas-confetti'
 import Image from 'next/image'
 import {
   Home, Calendar, FileText, User, Menu, ChevronRight,
@@ -163,6 +164,7 @@ export default function MeteleGolApp() {
   const [showSuccessRegistration, setShowSuccessRegistration] = useState(false) // Nuevo
   const [showQR, setShowQR] = useState(false)
   const [examCount, setExamCount] = useState(347)
+  const [displayCount, setDisplayCount] = useState(0)
   const [user, setUser] = useState<UserData | null>(null)
   const [rankingType, setRankingType] = useState<'jugador' | 'club'>('jugador')
   const leaderboard = [
@@ -188,6 +190,8 @@ export default function MeteleGolApp() {
   const [loginData, setLoginData] = useState({ rut: '', telefono: '' })
   const [selectedOperativo, setSelectedOperativo] = useState<Operativo | null>(null)
   const [showOperativoDetail, setShowOperativoDetail] = useState(false)
+  const [selectedGaleriaItem, setSelectedGaleriaItem] = useState<GaleriaItem | null>(null)
+  const [showGaleriaLightbox, setShowGaleriaLightbox] = useState(false)
 
   // Persistencia: Cargar usuario al iniciar
   useEffect(() => {
@@ -216,6 +220,32 @@ export default function MeteleGolApp() {
       setExamCount(prev => prev < 800 ? prev + Math.floor(Math.random() * 3) : prev)
     }, 15000)
     return () => clearInterval(interval)
+  }, [])
+
+  // Count-up animado al cargar
+  useEffect(() => {
+    const target = examCount
+    const duration = 1800
+    const startTime = performance.now()
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      // easeOutExpo para que desacelere al final
+      const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress)
+      setDisplayCount(Math.floor(eased * target))
+      if (progress < 1) requestAnimationFrame(animate)
+    }
+    const raf = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(raf)
+  }, [examCount])
+
+  // Confetti de celebración
+  const fireConfetti = useCallback((origin = { x: 0.5, y: 0.6 }) => {
+    confetti({ particleCount: 80, spread: 70, origin, colors: ['#00D4FF', '#10B981', '#F59E0B', '#ffffff'], zIndex: 9999 })
+    setTimeout(() => {
+      confetti({ particleCount: 50, spread: 100, origin: { x: 0.2, y: 0.7 }, colors: ['#00D4FF', '#F59E0B'], zIndex: 9999 })
+      confetti({ particleCount: 50, spread: 100, origin: { x: 0.8, y: 0.7 }, colors: ['#10B981', '#ffffff'], zIndex: 9999 })
+    }, 250)
   }, [])
 
   const handleRegister = async () => {
@@ -261,6 +291,8 @@ export default function MeteleGolApp() {
     setShowRegistration(false)
     setShowSuccessRegistration(true)
     setIsLoading(false)
+    // 🎉 Confetti de bienvenida al fichaje
+    setTimeout(() => fireConfetti(), 300)
     toast({ title: '⚽ ¡Fichaje exitoso!', description: '¡Bienvenido al equipo! Ahora solo falta agendar tu examen.' })
   }
 
@@ -326,9 +358,14 @@ export default function MeteleGolApp() {
     if (!selectedOperativo || !user) return
     setIsLoading(true)
     await new Promise(resolve => setTimeout(resolve, 1000))
+    const hasNewBadge = !user.badges.includes('gol-anotado')
     setUser(prev => prev ? { ...prev, examenRealizado: true, examenFecha: selectedOperativo.fecha, badges: prev.badges.includes('gol-anotado') ? prev.badges : [...prev.badges, 'gol-anotado'] } : null)
     setShowOperativoDetail(false)
     setIsLoading(false)
+    if (hasNewBadge) {
+      // 🎉 Confetti al ganar el badge "Gol Anotado"
+      setTimeout(() => fireConfetti({ x: 0.5, y: 0.4 }), 400)
+    }
     toast({ title: '⚽ ¡Examen agendado!', description: `Tu examen está programado para el ${selectedOperativo.fecha}.` })
   }
 
@@ -390,23 +427,26 @@ export default function MeteleGolApp() {
 
               {/* Hero Section - Mensaje Directo y Potente */}
               <div className="text-center space-y-6 pt-8">
-                {/* Logos Hero - Máxima Calidad y Nitidez */}
+                {/* Logos Hero - A color completo, visibles en mobile */}
                 <div className="flex justify-center items-center gap-12 sm:gap-16 mb-8 p-4 rounded-2xl bg-black/10 md:bg-transparent border border-white/5 md:border-none backdrop-blur-sm md:backdrop-blur-none">
-                  <div className="relative w-[120px] h-[80px] sm:w-[150px] sm:h-[100px] transition-all duration-700 hover:scale-110">
+                  <div className="relative w-[120px] h-[80px] sm:w-[150px] sm:h-[100px] transition-all duration-300 hover:scale-125 active:scale-125 group cursor-pointer">
                     <Image
                       src="/images/logo_sesp_clean_hd.png"
                       alt="Fundación SESP"
                       fill
-                      className="object-contain grayscale hover:grayscale-0 opacity-80 hover:opacity-100 transition-all drop-shadow-xl"
+                      className="object-contain opacity-85 hover:opacity-100 active:opacity-100 transition-all duration-300 drop-shadow-[0_0_24px_rgba(0,212,255,0.4)] group-hover:drop-shadow-[0_0_40px_rgba(0,212,255,0.85)] group-active:drop-shadow-[0_0_40px_rgba(0,212,255,0.85)]"
                     />
+                    {/* Ring glow al hover/touch */}
+                    <div className="absolute inset-0 rounded-xl ring-2 ring-primary/0 group-hover:ring-primary/60 group-active:ring-primary/60 transition-all duration-300 blur-[1px]" />
                   </div>
-                  <div className="relative w-[120px] h-[80px] sm:w-[150px] sm:h-[100px] transition-all duration-700 hover:scale-110">
+                  <div className="relative w-[120px] h-[80px] sm:w-[150px] sm:h-[100px] transition-all duration-300 hover:scale-125 active:scale-125 group cursor-pointer">
                     <Image
                       src="/images/logo_impacta_clean_hd.png"
                       alt="Consultora Impacta"
                       fill
-                      className="object-contain grayscale hover:grayscale-0 opacity-80 hover:opacity-100 transition-all drop-shadow-xl"
+                      className="object-contain opacity-85 hover:opacity-100 active:opacity-100 transition-all duration-300 drop-shadow-[0_0_24px_rgba(0,212,255,0.4)] group-hover:drop-shadow-[0_0_40px_rgba(0,212,255,0.85)] group-active:drop-shadow-[0_0_40px_rgba(0,212,255,0.85)]"
                     />
+                    <div className="absolute inset-0 rounded-xl ring-2 ring-primary/0 group-hover:ring-primary/60 group-active:ring-primary/60 transition-all duration-300 blur-[1px]" />
                   </div>
                 </div>
 
@@ -453,7 +493,7 @@ export default function MeteleGolApp() {
                       <h3 className="text-3xl font-black text-white italic">HINCHAS FICHADOS</h3>
                     </div>
                     <div className="text-right">
-                      <p className="text-4xl font-black text-primary leading-none">{examCount}</p>
+                       <p className="text-4xl font-black text-primary leading-none">{displayCount}</p>
                       <p className="text-xs font-bold text-muted-foreground">DE 800 META</p>
                     </div>
                   </div>
@@ -496,25 +536,36 @@ export default function MeteleGolApp() {
                 {/* Grid Premios Actualizada */}
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { image: "/images/camiseta_cdi.png", title: 'Camiseta CDI Oficial', desc: 'Autografiada por el plantel', qty: '5x' },
-                    { image: "/images/balon_molten.png", title: 'Balón firmado CDI', desc: 'Balón Molten Vantaggio', qty: '5x' },
-                    { image: "/images/indumentaria_personal.png", title: 'Indumentaria Deportiva Personal', desc: 'Camiseta, pantalón corto, medias, zapatos', qty: '5x' },
-                    { image: "/images/indumentaria_equipo.png", title: 'Indumentaria Equipos', desc: 'Para 15 personas: Camiseta, pantalón corto, medias. Incluye guantes y camiseta mangas largas.', qty: '5x' },
-                    { icon: <Ticket className="w-8 h-8 text-warning" />, title: 'Andes Numerada', desc: 'Acceso total local 1 año', qty: '1x' },
-                    { icon: <Star className="w-8 h-8 text-warning" />, title: 'Andes Accionista', desc: 'Beneficio exclusivo socios 1 año', qty: '1x' },
-                    { icon: <Crown className="w-8 h-8 text-warning" />, title: 'Pacífico', desc: 'Experiencia premium sector pacífico 1 año', qty: '1x' },
+                    { image: "/images/camiseta_cdi.png", title: 'Camiseta CDI Oficial', desc: 'Autografiada por el plantel', qty: '5x', gradient: null },
+                    { image: "/images/balon_molten.png", title: 'Balón firmado CDI', desc: 'Balón Molten Vantaggio', qty: '5x', gradient: null, objectPosition: 'center 30%', objectScale: true },
+                    { image: "/images/indumentaria_personal.png", title: 'Indumentaria Deportiva Personal', desc: 'Camiseta, pantalón corto, medias, zapatos', qty: '5x', gradient: null },
+                    { image: "/images/indumentaria_equipo.png", title: 'Indumentaria Equipos', desc: 'Para 15 personas: Camiseta, pantalón corto, medias. Incluye guantes y camiseta mangas largas.', qty: '5x', gradient: null },
+                    { image: null, icon: <Ticket className="w-10 h-10 text-warning drop-shadow-[0_0_12px_rgba(234,179,8,0.6)]" />, title: 'Andes Numerada', desc: 'Acceso total al estadio · 1 temporada completa', qty: '1x', gradient: 'from-yellow-900/80 via-warning/20 to-orange-900/60', emoji: '🎟️' },
+                    { image: null, icon: <Star className="w-10 h-10 text-warning drop-shadow-[0_0_12px_rgba(234,179,8,0.6)]" />, title: 'Andes Accionista', desc: 'Beneficios exclusivos de socio · 1 año completo', qty: '1x', gradient: 'from-amber-900/80 via-yellow-700/30 to-warning/20', emoji: '⭐' },
+                    { image: null, icon: <Crown className="w-10 h-10 text-warning drop-shadow-[0_0_16px_rgba(234,179,8,0.7)]" />, title: 'Pacífico VIP', desc: 'Sector premium frente al mar · 1 temporada', qty: '1x', gradient: 'from-blue-900/80 via-primary/30 to-cyan-900/60', emoji: '🌊' },
                   ].map((item, i) => (
                     <Card key={i} className="bg-gradient-to-b from-card to-card/50 border-border overflow-hidden relative group hover:border-warning/30 transition-all shadow-md">
                       <div className="aspect-square relative flex flex-col items-center justify-center bg-white/5 p-4 gap-3">
                         {item.image ? (
                           <div className="absolute inset-0 z-0">
-                            <Image src={item.image} alt={item.title} fill className="object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 blur-[0.3px] group-hover:blur-0" />
+                            <Image src={item.image} alt={item.title} fill className={`object-cover opacity-80 group-hover:opacity-100 transition-all duration-700 blur-[0.3px] group-hover:blur-0 ${'objectScale' in item && item.objectScale ? 'group-hover:scale-110 scale-105' : 'group-hover:scale-110'}`} style={'objectPosition' in item && item.objectPosition ? { objectPosition: item.objectPosition } : {}} />
                             <div className="absolute inset-0 bg-gradient-to-t from-card via-card/10 to-transparent" />
                           </div>
                         ) : (
-                          <div className="bg-warning/10 p-5 rounded-full shadow-inner group-hover:scale-110 transition-transform duration-500 z-10 border border-warning/20">
-                            {item.icon}
-                          </div>
+                          <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} transition-all duration-700 group-hover:opacity-90`} />
+                        )}
+                        {!item.image && (
+                          <>
+                            {/* Partículas decorativas de fondo */}
+                            <div className="absolute top-3 left-3 text-3xl opacity-10 group-hover:opacity-20 transition-opacity">{item.emoji}</div>
+                            <div className="absolute bottom-3 right-3 text-3xl opacity-10 group-hover:opacity-20 transition-opacity rotate-12">{item.emoji}</div>
+                            {/* Ícono y texto centrados */}
+                            <div className="relative z-10 flex flex-col items-center gap-2">
+                              <div className="bg-black/30 backdrop-blur-sm p-4 rounded-2xl border border-warning/30 shadow-[0_0_20px_rgba(234,179,8,0.2)] group-hover:scale-110 transition-transform duration-500">
+                                {item.icon}
+                              </div>
+                            </div>
+                          </>
                         )}
                         <div className="absolute top-2 right-2 z-20">
                           <Badge className="bg-warning text-warning-foreground font-black shadow-lg border-2 border-warning/20 italic">{item.qty}</Badge>
@@ -648,7 +699,7 @@ export default function MeteleGolApp() {
                   {[
                     // GORE: Tiene fondo claro y letras oscuras. invert + mix-blend-screen borra el fondo y vuelve blanco el logo.
                     { src: "/images/logo_gorecolor.png", alt: "GORE Tarapacá", scale: "scale-125", filter: "invert grayscale contrast-[1.2] mix-blend-screen" },
-                    { src: "/images/logo_cdi_white.png", alt: "Club Deportes Iquique", scale: "scale-90", filter: "" },
+                    { src: "/images/logo_cdi_white.png", alt: "Club Deportes Iquique", scale: "scale-125", filter: "" },
                     { src: "/images/logo_collahuasi_trans_white.png", alt: "Collahuasi", scale: "scale-110", filter: "" },
                     // AFSI: Tiene escudo blanco y fondo blanco/claro. invert + mix-blend-screen dejará el interior negro y el borde blanco. Para evitar que quede feo, 
                     // simplemente usemos la versión real a color si mix blend no funciona bien. Para probar, usamos la versión original con estas clases probadas.
@@ -968,22 +1019,47 @@ export default function MeteleGolApp() {
           {/* ===== GALERÍA TAB ===== */}
           {activeTab === 'galeria' && (
             <div className="px-4 py-6 space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold mb-2">📸 Galería de la Campaña</h1>
-                <p className="text-muted-foreground">Mira los momentos más importantes de "Métele un Gol al Cáncer"</p>
+              {/* Encabezado estilo consistente con el resto de la app */}
+              <div className="text-center space-y-2">
+                <div className="flex items-center justify-center gap-3 mb-1">
+                  <div className="h-[2px] w-8 bg-gradient-to-r from-transparent to-primary/50 rounded-full" />
+                  <p className="text-[11px] font-black text-primary uppercase tracking-[0.4em]">Campaña 2026</p>
+                  <div className="h-[2px] w-8 bg-gradient-to-l from-transparent to-primary/50 rounded-full" />
+                </div>
+                <h1 className="text-3xl font-black italic text-white uppercase tracking-tight">📸 Galería</h1>
+                <div className="flex items-center justify-center gap-2">
+                  <p className="text-primary text-sm font-bold uppercase tracking-widest">Los mejores momentos</p>
+                  <Badge className="bg-primary/20 text-primary border-primary/30 font-black text-[10px]">{galeriaMock.length} FOTOS</Badge>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                {galeriaMock.map((item) => (
-                  <Card key={item.id} className="bg-card/90 border-border overflow-hidden group cursor-pointer hover:border-primary/50 transition-all">
+                {galeriaMock.map((item, idx) => (
+                  <Card
+                    key={item.id}
+                    className="bg-card/90 border-border overflow-hidden group cursor-pointer hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/10"
+                    onClick={() => { setSelectedGaleriaItem(item); setShowGaleriaLightbox(true) }}
+                  >
                     <div className="aspect-square relative overflow-hidden">
-                      <Image src={item.imagen} alt={item.titulo} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      <Image src={item.imagen} alt={item.titulo} fill className="object-cover group-hover:scale-108 transition-transform duration-500" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                      {/* Badge NUEVA en las últimas 2 fotos */}
+                      {idx >= galeriaMock.length - 2 && (
+                        <div className="absolute top-2 left-2">
+                          <Badge className="bg-success text-success-foreground font-black text-[9px] uppercase animate-pulse shadow-md">🆕 NUEVA</Badge>
+                        </div>
+                      )}
+                      {/* Ícono expand al hover */}
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="bg-black/60 backdrop-blur-sm rounded-full p-1.5">
+                          <ExternalLink className="w-3 h-3 text-white" />
+                        </div>
+                      </div>
                       <div className="absolute bottom-2 left-2 right-2">
-                        <p className="font-medium text-sm text-white">{item.titulo}</p>
-                        <div className="flex items-center gap-2 text-xs text-white/80 mt-1">
-                          <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{item.likes}</span>
-                          <span className="flex items-center gap-1"><MessageCircle className="w-3 h-3" />{item.comentarios}</span>
+                        <p className="font-black text-sm text-white uppercase italic leading-tight tracking-tight">{item.titulo}</p>
+                        <div className="flex items-center gap-3 text-xs text-white/80 mt-1">
+                          <span className="flex items-center gap-1 font-bold"><ThumbsUp className="w-3 h-3 text-primary" />{item.likes}</span>
+                          <span className="flex items-center gap-1 font-bold"><MessageCircle className="w-3 h-3 text-primary" />{item.comentarios}</span>
                         </div>
                       </div>
                     </div>
@@ -994,10 +1070,10 @@ export default function MeteleGolApp() {
               <Card className="bg-gradient-to-r from-primary/10 to-success/10 border-primary/20">
                 <CardContent className="py-4 text-center">
                   <Camera className="h-8 w-8 text-primary mx-auto mb-2" />
-                  <p className="font-medium">¿Tienes fotos de la campaña?</p>
-                  <p className="text-sm text-muted-foreground mb-3">Comparte tus momentos con la comunidad</p>
-                  <Button variant="outline" className="border-primary/50">
-                    <Share2 className="w-4 w-4 mr-2" />
+                  <p className="font-black text-white uppercase italic text-sm">¿Tienes fotos de la campaña?</p>
+                  <p className="text-xs text-muted-foreground mb-3">Comparte tus momentos con la comunidad</p>
+                  <Button variant="outline" className="border-primary/50 font-black uppercase text-xs">
+                    <Share2 className="w-4 h-4 mr-2" />
                     Subir contenido
                   </Button>
                 </CardContent>
@@ -1033,8 +1109,11 @@ export default function MeteleGolApp() {
                     </div>
                     <CardContent className="pt-12 pb-4 relative">
                       <div className="absolute -top-10 left-4">
-                        <div className="w-20 h-20 rounded-2xl overflow-hidden border-4 border-background">
-                          <Image src="/images/logo_cdi.png" alt="Avatar" width={80} height={80} className="object-cover bg-primary/10" />
+                        {/* Avatar dinámico con iniciales del usuario */}
+                        <div className="w-20 h-20 rounded-2xl border-4 border-background bg-gradient-to-br from-primary/40 to-primary/10 flex items-center justify-center shadow-lg shadow-primary/20">
+                          <span className="text-2xl font-black text-white uppercase tracking-tight">
+                            {user.nombre.split(' ').map((n: string) => n[0]).slice(0, 2).join('')}
+                          </span>
                         </div>
                       </div>
                       <div className="flex items-start justify-between mb-4">
@@ -1429,6 +1508,54 @@ export default function MeteleGolApp() {
           </DialogContent>
         </Dialog>
       </div>
+
+        {/* Galería Lightbox Dialog */}
+        <Dialog open={showGaleriaLightbox} onOpenChange={(val) => { setShowGaleriaLightbox(val); if (!val) setSelectedGaleriaItem(null) }}>
+          <DialogContent className="max-w-sm bg-card border-border p-0 overflow-hidden">
+            {selectedGaleriaItem && (
+              <>
+                {/* Imagen fullscreen */}
+                <div className="aspect-[4/3] relative overflow-hidden">
+                  <Image
+                    src={selectedGaleriaItem.imagen}
+                    alt={selectedGaleriaItem.titulo}
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  {/* Badge fecha sobre la imagen */}
+                  <div className="absolute top-3 right-3">
+                    <Badge className="bg-black/60 backdrop-blur-sm text-white border-white/20 font-bold text-[10px]">
+                      {selectedGaleriaItem.fecha}
+                    </Badge>
+                  </div>
+                </div>
+                {/* Info */}
+                <div className="p-5 space-y-3">
+                  <div>
+                    <h3 className="font-black text-white text-lg uppercase italic leading-tight tracking-tight">{selectedGaleriaItem.titulo}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{selectedGaleriaItem.descripcion}</p>
+                  </div>
+                  <div className="flex items-center gap-4 pt-2 border-t border-white/5">
+                    <span className="flex items-center gap-2 text-sm font-black text-primary">
+                      <ThumbsUp className="w-4 h-4" /> {selectedGaleriaItem.likes} me gusta
+                    </span>
+                    <span className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
+                      <MessageCircle className="w-4 h-4" /> {selectedGaleriaItem.comentarios} comentarios
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full border-primary/30 font-black uppercase text-xs"
+                    onClick={() => setShowGaleriaLightbox(false)}
+                  >
+                    Cerrar
+                  </Button>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
 
       {/* Magic Filter - Elimina fondo blanco de imágenes por software */}
       <svg width="0" height="0" className="absolute invisible pointer-events-none">
