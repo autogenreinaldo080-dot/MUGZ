@@ -9,7 +9,7 @@ import {
   Phone, Check, Trophy, Target, Star, Shirt, Ticket, Crown,
   QrCode, Download, Bell, Settings, HelpCircle,
   Play, Info, Heart, Activity, Camera,
-  LogOut, Share2, MessageCircle, ThumbsUp,
+  LogOut, Share2, MessageCircle, ThumbsUp, Music,
   UserPlus, ArrowRight, Mail, ExternalLink,
   CircleUser, BookOpen, Scale
 } from 'lucide-react'
@@ -26,6 +26,24 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from '@/hooks/use-toast'
+
+// Interfaz propia de componentes
+import HeroSection from '@/components/home/HeroSection'
+import StatsCounter from '@/components/home/StatsCounter'
+import PrizeVitrine from '@/components/home/PrizeVitrine'
+import LeaderboardClubes from '@/components/home/LeaderboardClubes'
+import AuspiciadoresGrid from '@/components/home/AuspiciadoresGrid'
+import OperativoCard from '@/components/home/OperativoCard'
+import InfoSalud from '@/components/home/InfoSalud'
+import Galeria from '@/components/home/Galeria'
+import PerfilUsuario from '@/components/home/PerfilUsuario'
+import PreSeasonGate from '@/components/home/PreSeasonGate'
+
+// Acciones Reales del Servidor
+import { 
+  registerUser, loginUser, getOperativos, 
+  joinOperativo, getClubLeaderboard, getPlaylist, rateSong
+} from '@/app/actions/user-actions'
 
 // Types
 type TabId = 'home' | 'operativos' | 'resultados' | 'galeria' | 'perfil' | 'mas'
@@ -47,6 +65,7 @@ interface UserData {
   examenFecha: string | null
   examenValidado: boolean // Nuevo: Para validación administrativa
   badges: string[]
+  ratings?: { songId: string, stars: number }[]
   fechaRegistro: string
 }
 
@@ -121,44 +140,10 @@ const auspiciadores = [
   { nombre: 'AFI', logo: '/images/logo_afi.png', link: '#' },
 ]
 
-// Helper: Ref-based badge item component to avoid inline style warnings
-function BadgeItem({ badge, earned }: { badge: any; earned: boolean }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const iconRef = useRef<SVGSVGElement>(null);
-
-  useLayoutEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.style.backgroundColor = earned ? `${badge.color}20` : 'rgba(255,255,255,0.05)';
-      containerRef.current.style.border = `2px solid ${earned ? badge.color : 'transparent'}`;
-    }
-    if (iconRef.current) {
-      // @ts-ignore - style property exists on SVGElement but TS might be picky
-      iconRef.current.style.color = earned ? badge.color : 'currentColor';
-    }
-  }, [earned, badge.color]);
-
-  return (
-    <Card className={`bg-card/90 border-2 transition-all duration-500 overflow-hidden relative group ${earned ? 'border-success/30 shadow-success/5' : 'border-white/5 opacity-40 grayscale'}`}>
-      {earned && <div className="absolute inset-0 bg-gradient-to-b from-success/5 to-transparent pointer-events-none" />}
-      <CardContent className="py-4 relative z-10">
-        <div className="flex flex-col items-center text-center gap-2">
-          <div ref={containerRef} className="w-14 h-14 rounded-full flex items-center justify-center relative">
-            <badge.icon ref={iconRef} className={`h-7 w-7 ${earned ? 'animate-pulse-slow' : ''}`} />
-            {earned && <div className="absolute -top-1 -right-1 bg-success rounded-full p-1"><Check className="w-2 h-2 text-white" /></div>}
-          </div>
-          <div>
-            <p className="font-black text-[11px] text-white uppercase leading-tight">{badge.name}</p>
-            <p className="text-[9px] text-muted-foreground mt-1 leading-tight font-medium">{badge.description}</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 // ========== COMPONENTE PRINCIPAL ==========
 export default function MeteleGolApp() {
   const [activeTab, setActiveTab] = useState<TabId>('home')
+  const [isAuthorized, setIsAuthorized] = useState(false)
   const [showRegistration, setShowRegistration] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const [showSuccessRegistration, setShowSuccessRegistration] = useState(false) // Nuevo
@@ -167,18 +152,10 @@ export default function MeteleGolApp() {
   const [displayCount, setDisplayCount] = useState(0)
   const [user, setUser] = useState<UserData | null>(null)
   const [rankingType, setRankingType] = useState<'jugador' | 'club'>('jugador')
-  const leaderboard = [
-    { rank: 1, team: 'Deportivo Cavancha', exams: 12, logo: '/images/logo_cdi.png' },
-    { rank: 2, team: 'Unión Morro', exams: 10, logo: '/images/logo_cdi.png' },
-    { rank: 3, team: 'Estrella de Chile', exams: 8, logo: '/images/logo_cdi.png' },
-    { rank: 4, team: 'Iquique Wanderers', exams: 6, logo: '/images/logo_cdi.png' },
-    { rank: 5, team: 'Liga Pozo Al Monte', exams: 4, logo: '/images/logo_cdi.png' },
-  ]
-  const clubLeaderboard = [
-    { id: 2, name: 'Deportivo Cavancha', exams: 12 },
-    { id: 3, name: 'Unión Morro', exams: 8 },
-    { id: 4, name: 'Estrella de Chile', exams: 6 },
-  ]
+  const [liveOperativos, setLiveOperativos] = useState<any[]>([])
+  const [liveLeaderboard, setLiveLeaderboard] = useState<any[]>([])
+  const [livePlaylist, setLivePlaylist] = useState<any[]>([])
+  
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState<{
     nombre: string, rut: string, edad: string, telefono: string, email: string, comuna: string,
@@ -188,10 +165,44 @@ export default function MeteleGolApp() {
     esJugador: false, equipo: '', club: '', otroClub: '', esSocioCDI: false, aceptaTerminos: false
   })
   const [loginData, setLoginData] = useState({ rut: '', telefono: '' })
-  const [selectedOperativo, setSelectedOperativo] = useState<Operativo | null>(null)
+  const [selectedOperativo, setSelectedOperativo] = useState<any | null>(null)
   const [showOperativoDetail, setShowOperativoDetail] = useState(false)
-  const [selectedGaleriaItem, setSelectedGaleriaItem] = useState<GaleriaItem | null>(null)
+  const [selectedGaleriaItem, setSelectedGaleriaItem] = useState<any | null>(null)
   const [showGaleriaLightbox, setShowGaleriaLightbox] = useState(false)
+  
+  // Cargar datos iniciales
+  useEffect(() => {
+    async function loadData() {
+      setIsLoading(true)
+      try {
+        const ops = await getOperativos()
+        if (ops.success && ops.operativos.length > 0) {
+          setLiveOperativos(ops.operativos)
+        } else {
+          // Fallback data if DB is empty but we want to show something
+          setLiveOperativos(operativosMock)
+        }
+        
+        const rank = await getClubLeaderboard()
+        if (rank.success && rank.clubs.length > 0) {
+          setLiveLeaderboard(rank.clubs)
+        } else {
+          setLiveLeaderboard(leaderboard.map((l, i) => ({ id: `l-${i}`, nombre: l.team, miembros: l.exams, logo: l.logo })))
+        }
+
+        const songsData = await getPlaylist()
+        if (songsData.success) {
+          setLivePlaylist(songsData.songs)
+        }
+      } catch (error) {
+        console.error("Error loading initial data", error)
+        setLiveOperativos(operativosMock)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadData()
+  }, [])
 
   // Persistencia: Cargar usuario al iniciar
   useEffect(() => {
@@ -239,6 +250,17 @@ export default function MeteleGolApp() {
     return () => cancelAnimationFrame(raf)
   }, [examCount])
 
+  // Persistencia: Cargar estado de autorización
+  useEffect(() => {
+    const authorized = sessionStorage.getItem('mugz_auth') === 'true'
+    if (authorized) setIsAuthorized(true)
+  }, [])
+
+  const handleAuthorize = () => {
+    setIsAuthorized(true)
+    sessionStorage.setItem('mugz_auth', 'true')
+  }
+
   // Confetti de celebración
   const fireConfetti = useCallback((origin = { x: 0.5, y: 0.6 }) => {
     confetti({ particleCount: 80, spread: 70, origin, colors: ['#00D4FF', '#10B981', '#F59E0B', '#ffffff'], zIndex: 9999 })
@@ -266,34 +288,26 @@ export default function MeteleGolApp() {
       return
     }
     setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
     const finalClub = formData.club === 'otro' ? formData.otroClub : formData.club
-    const newUser: UserData = {
-      id: `MG-${Date.now()}`,
-      nombre: formData.nombre,
-      rut: formData.rut,
-      edad: parseInt(formData.edad),
-      telefono: formData.telefono,
-      email: formData.email,
-      comuna: formData.comuna,
-      esJugador: formData.esJugador,
-      equipo: formData.equipo,
-      club: finalClub || 'Sin club',
-      esSocioCDI: formData.esSocioCDI,
-      inscrito: true,
-      examenRealizado: false,
-      examenFecha: null,
-      examenValidado: false,
-      badges: ['primer-tiempo'],
-      fechaRegistro: new Date().toISOString()
+    
+    const result = await registerUser({
+      ...formData,
+      club: finalClub
+    })
+
+    if (result.success) {
+      setUser(result.user as any)
+      setShowRegistration(false)
+      setShowSuccessRegistration(true)
+      // Efecto de festejo inmediato
+      setTimeout(() => {
+        fireConfetti()
+        toast({ title: '⚽ ¡FICHAJE COMPLETADO!', description: '¡Bienvenido al equipo, crack!' })
+      }, 500)
+    } else {
+      toast({ title: '❌ Error', description: result.error, variant: 'destructive' })
     }
-    setUser(newUser)
-    setShowRegistration(false)
-    setShowSuccessRegistration(true)
     setIsLoading(false)
-    // 🎉 Confetti de bienvenida al fichaje
-    setTimeout(() => fireConfetti(), 300)
-    toast({ title: '⚽ ¡Fichaje exitoso!', description: '¡Bienvenido al equipo! Ahora solo falta agendar tu examen.' })
   }
 
   const handleLogin = async () => {
@@ -302,18 +316,34 @@ export default function MeteleGolApp() {
       return
     }
     setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    const mockUser: UserData = {
-      id: 'MG-12345', nombre: 'Usuario Demo', rut: loginData.rut, edad: 45,
-      telefono: loginData.telefono, email: 'demo@metelegal.com', comuna: 'Iquique',
-      esJugador: true, equipo: 'Liga ANFA Iquique', club: 'Deportivo Cavancha', esSocioCDI: false,
-      inscrito: true, examenRealizado: false, examenFecha: null, examenValidado: false,
-      badges: ['primer-tiempo', 'capitan'], fechaRegistro: '2026-01-15'
+
+    // Developer / Staff Bypass
+    if (loginData.rut === 'MUG2026' || loginData.telefono === 'MUG2026') {
+      const staffUser: UserData = {
+        id: 'STAFF-2026', nombre: 'Staff Técnico MUG Z', rut: '00.000.000-0', edad: 33,
+        telefono: 'MUG2026', email: 'staff@metelegal.com', comuna: 'Iquique',
+        esJugador: true, equipo: 'Staff Iquique', club: 'CDI / SESP', esSocioCDI: true,
+        inscrito: true, examenRealizado: true, examenFecha: 'En proceso', examenValidado: true,
+        badges: ['primer-tiempo', 'capitan', 'gol-anotado'], 
+        ratings: [],
+        fechaRegistro: new Date().toISOString()
+      }
+      setUser(staffUser)
+      setShowLogin(false)
+      setIsLoading(false)
+      toast({ title: '🛠️ Acceso Staff Autorizado', description: 'Has ingresado con privilegios de desarrollador.' })
+      return
     }
-    setUser(mockUser)
-    setShowLogin(false)
+
+    const result = await loginUser(loginData.rut, loginData.telefono)
+    if (result.success) {
+      setUser(result.user as any)
+      setShowLogin(false)
+      toast({ title: '⚽ ¡Bienvenido de vuelta!', description: `Hola ${result.user.nombre}, ya estás en la lista.` })
+    } else {
+      toast({ title: '❌ Error', description: result.error, variant: 'destructive' })
+    }
     setIsLoading(false)
-    toast({ title: '⚽ ¡Bienvenido de vuelta!', description: `Hola ${mockUser.nombre}, ya estás en la lista.` })
   }
 
   const handleShare = () => {
@@ -357,19 +387,57 @@ export default function MeteleGolApp() {
   const confirmSchedule = async () => {
     if (!selectedOperativo || !user) return
     setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    const hasNewBadge = !user.badges.includes('gol-anotado')
-    setUser(prev => prev ? { ...prev, examenRealizado: true, examenFecha: selectedOperativo.fecha, badges: prev.badges.includes('gol-anotado') ? prev.badges : [...prev.badges, 'gol-anotado'] } : null)
-    setShowOperativoDetail(false)
-    setIsLoading(false)
-    if (hasNewBadge) {
-      // 🎉 Confetti al ganar el badge "Gol Anotado"
-      setTimeout(() => fireConfetti({ x: 0.5, y: 0.4 }), 400)
+    
+    const result = await joinOperativo(user.id, selectedOperativo.id.toString())
+    
+    if (result.success) {
+      const currentBadges = Array.isArray(user.badges) ? user.badges : []
+      const hasNewBadge = !currentBadges.includes('gol-anotado')
+      setUser(result.user as any)
+      setShowOperativoDetail(false)
+      if (hasNewBadge) {
+        setTimeout(() => fireConfetti({ x: 0.5, y: 0.4 }), 400)
+      }
+      toast({ title: '⚽ ¡Examen agendado!', description: `Tu examen está programado para el ${selectedOperativo.fecha}.` })
+      
+      // Recargar operativos para actualizar cupos
+      const ops = await getOperativos()
+      if (ops.success) setLiveOperativos(ops.operativos)
+    } else {
+      toast({ title: '❌ Error', description: result.error, variant: 'destructive' })
     }
-    toast({ title: '⚽ ¡Examen agendado!', description: `Tu examen está programado para el ${selectedOperativo.fecha}.` })
+    setIsLoading(false)
+  }
+
+  const handleRateSong = async (songId: string, stars: number) => {
+    if (!user) {
+      toast({ title: '⚠️ Regístrate primero', description: 'Debes ser parte del equipo para valorar la música.', variant: 'destructive' })
+      return
+    }
+
+    const result = await rateSong(user.id, songId, stars)
+    if (result.success) {
+      toast({ title: '⭐ ¡Valoración guardada!', description: 'Gracias por opinar sobre nuestra banda sonora.' })
+      
+      // Update local user ratings
+      const updatedRatings = [...(user.ratings || [])]
+      const index = updatedRatings.findIndex(r => r.songId === songId)
+      if (index >= 0) updatedRatings[index].stars = stars
+      else updatedRatings.push({ songId, stars })
+      
+      setUser({ ...user, ratings: updatedRatings })
+
+      // Refresh playlist for global averages
+      const songsData = await getPlaylist()
+      if (songsData.success) setLivePlaylist(songsData.songs)
+    }
   }
 
   const progressPercent = (examCount / 800) * 100
+
+  if (!isAuthorized && process.env.NODE_ENV !== 'development') {
+    return <PreSeasonGate onBypass={handleAuthorize} />
+  }
 
   return (
     <>
@@ -399,19 +467,32 @@ export default function MeteleGolApp() {
 
             <div className="flex items-center gap-1 sm:gap-2 shrink">
               {user ? (
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="hidden xs:flex bg-primary/10 text-primary border-primary/20 whitespace-nowrap">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <Badge variant="outline" className="hidden sm:flex bg-primary/10 text-primary border-primary/20 whitespace-nowrap mr-2">
                     <Target className="w-3 h-3 mr-1" />
-                    Listo para participar
+                    Jugador Activo
                   </Badge>
+                  <Button 
+                    onClick={() => {
+                      setUser(null);
+                      localStorage.removeItem('mugz_user');
+                      toast({ title: 'Cierre Exitoso', description: 'Has vuelto a la banca.' });
+                    }}
+                    size="sm" 
+                    className="bg-destructive/20 hover:bg-destructive text-white font-bold px-4 backdrop-blur-sm border border-destructive/50 transition-all duration-300"
+                  >
+                    SALIR
+                  </Button>
                 </div>
               ) : (
                 <div className="flex items-center gap-1 sm:gap-2">
-                  <a href="/admin/login">
-                    <Button size="sm" className="bg-primary/20 hover:bg-primary/30 border border-primary/50 text-white font-bold px-4 backdrop-blur-sm shadow-[0_0_15px_rgba(0,212,255,0.3)] hover:shadow-[0_0_25px_rgba(0,212,255,0.5)] transition-all duration-300">
+                    <Button 
+                      onClick={() => setShowLogin(true)}
+                      size="sm" 
+                      className="bg-primary hover:bg-primary/80 text-black font-black px-4 shadow-[0_0_20px_rgba(0,212,255,0.4)] transition-all duration-300 transform active:scale-95"
+                    >
                       🔐 INGRESO VAR
                     </Button>
-                  </a>
                 </div>
               )}
             </div>
@@ -423,184 +504,100 @@ export default function MeteleGolApp() {
 
           {/* ===== HOME TAB ===== */}
           {activeTab === 'home' && (
-            <div className="px-4 py-6 space-y-6">
-
-              {/* Hero Section - Mensaje Directo y Potente */}
-              <div className="text-center space-y-6 pt-8">
-                {/* Logos Hero - A color completo, visibles en mobile */}
-                <div className="flex justify-center items-center gap-12 sm:gap-16 mb-8 p-4 rounded-2xl bg-black/10 md:bg-transparent border border-white/5 md:border-none backdrop-blur-sm md:backdrop-blur-none">
-                  <div className="relative w-[120px] h-[80px] sm:w-[150px] sm:h-[100px] transition-all duration-300 hover:scale-125 active:scale-125 group cursor-pointer">
-                    <Image
-                      src="/images/logo_sesp_clean_hd.png"
-                      alt="Fundación SESP"
-                      fill
-                      className="object-contain opacity-85 hover:opacity-100 active:opacity-100 transition-all duration-300 drop-shadow-[0_0_24px_rgba(0,212,255,0.4)] group-hover:drop-shadow-[0_0_40px_rgba(0,212,255,0.85)] group-active:drop-shadow-[0_0_40px_rgba(0,212,255,0.85)]"
-                    />
-                    {/* Ring glow al hover/touch */}
-                    <div className="absolute inset-0 rounded-xl ring-2 ring-primary/0 group-hover:ring-primary/60 group-active:ring-primary/60 transition-all duration-300 blur-[1px]" />
-                  </div>
-                  <div className="relative w-[120px] h-[80px] sm:w-[150px] sm:h-[100px] transition-all duration-300 hover:scale-125 active:scale-125 group cursor-pointer">
-                    <Image
-                      src="/images/logo_impacta_clean_hd.png"
-                      alt="Consultora Impacta"
-                      fill
-                      className="object-contain opacity-85 hover:opacity-100 active:opacity-100 transition-all duration-300 drop-shadow-[0_0_24px_rgba(0,212,255,0.4)] group-hover:drop-shadow-[0_0_40px_rgba(0,212,255,0.85)] group-active:drop-shadow-[0_0_40px_rgba(0,212,255,0.85)]"
-                    />
-                    <div className="absolute inset-0 rounded-xl ring-2 ring-primary/0 group-hover:ring-primary/60 group-active:ring-primary/60 transition-all duration-300 blur-[1px]" />
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-center gap-1">
-                  <p className="text-[17px] sm:text-lg font-black text-primary uppercase tracking-[0.5em] mb-1 opacity-90">Campaña 2026</p>
-                  <div className="h-[2px] w-16 bg-gradient-to-r from-transparent via-primary/50 to-transparent rounded-full" />
-                </div>
-
-                <h1 className="text-4xl sm:text-6xl font-black mt-2 tracking-tighter leading-tight drop-shadow-2xl">
-                  <span className="gradient-text">MÉTELE UN GOL</span>
-                  <br />
-                  <span className="text-white">AL CÁNCER</span>
-                </h1>
-
-                <p className="text-white/95 text-xl sm:text-2xl max-w-lg mx-auto font-black uppercase italic leading-tight">
-                  "Hazte el test de antígeno PSA y queda listo para el 2do tiempo"
-                </p>
-
-                {!user ? (
-                  <div className="flex flex-col gap-3 justify-center mt-6 px-4">
-                    <Button onClick={() => setShowRegistration(true)} className="bg-primary text-primary-foreground text-xl px-8 py-8 rounded-2xl animate-pulse-glow font-black shadow-xl shadow-primary/20 uppercase">
-                      ⚽ ¡SALTAR A LA CANCHA!
-                    </Button>
-                    <Button variant="ghost" onClick={() => setShowLogin(true)} className="text-white text-lg font-bold">
-                      Ya soy del equipo
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-3 justify-center mt-6 px-4">
-                    <Button onClick={() => setActiveTab('operativos')} className="bg-primary text-primary-foreground text-lg py-6 rounded-xl font-black uppercase">
-                      <Target className="mr-2 h-5 w-5" /> Saltar a jugar el 1er tiempo
-                    </Button>
-                    <p className="text-xs text-white/70 italic uppercase font-bold">Agenda tu examen preventivo ahora</p>
-                  </div>
-                )}
-              </div>
+            <div className="px-4 py-6 space-y-8">
+              {/* Hero Section */}
+              <HeroSection 
+                user={user} 
+                onShowRegistration={() => setShowRegistration(true)} 
+                onShowLogin={() => setShowLogin(true)} 
+                onSetActiveTab={setActiveTab}
+              />
 
               {/* Progress Counter - Marcador de Estadio */}
-              <Card className="bg-card/90 backdrop-blur border-border overflow-hidden shadow-2xl">
-                <CardContent className="pt-6">
-                  <div className="flex justify-between items-end mb-4">
-                    <div className="space-y-1">
-                      <p className="text-xs uppercase font-black text-primary tracking-widest">MARCADOR CAMPAMENTO</p>
-                      <h3 className="text-3xl font-black text-white italic">HINCHAS FICHADOS</h3>
-                    </div>
-                    <div className="text-right">
-                       <p className="text-4xl font-black text-primary leading-none">{displayCount}</p>
-                      <p className="text-xs font-bold text-muted-foreground">DE 800 META</p>
-                    </div>
-                  </div>
-                  <Progress value={progressPercent} className="h-6 bg-muted/50 rounded-full border-2 border-border" />
-                  <div className="flex justify-between items-center mt-3">
-                    <p className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1">
-                      <Target className="w-3 h-3" /> TODO IQUIQUE EN LA CANCHA
-                    </p>
-                    <p className="text-sm text-success font-black italic">{Math.round(progressPercent)}% DEL PARTIDO</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <StatsCounter displayCount={displayCount} progressPercent={progressPercent} />
 
               {/* Vitrina de Premios y Sorteo */}
+              <PrizeVitrine />
+
+              {/* Ranking de Canciones (HIT LIST) */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-black italic text-white uppercase italic">🎁 Vitrina de Premios</h2>
-                  <Badge className="bg-warning text-warning-foreground font-black animate-pulse">23 PREMIOS TOTAL</Badge>
+                  <h3 className="text-xl font-black italic text-white uppercase tracking-tighter flex items-center gap-3">
+                    <Music className="w-6 h-6 text-primary drop-shadow-[0_0_8px_rgba(0,212,255,0.4)]" /> Hit List MUG Z
+                  </h3>
+                  <Badge variant="outline" className="border-primary/30 text-primary text-[10px] font-black uppercase italic">Vota por tu favorita</Badge>
                 </div>
 
-                {/* Info Sorteo */}
-                <Card className="bg-gradient-to-br from-warning/20 to-primary/10 border-2 border-warning/50 shadow-lg shadow-warning/10 overflow-hidden">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-warning/20 p-2 rounded-lg">
-                        <Trophy className="h-8 w-8 text-warning" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black uppercase text-warning tracking-widest leading-none mb-1">FECHA DEL SORTEO</p>
-                        <p className="text-xl font-black text-white leading-none">04/07/2026</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-black uppercase text-warning tracking-widest leading-none mb-1">HORA</p>
-                      <p className="text-xl font-black text-white leading-none">12:00 HRS</p>
+                <Card className="bg-card/40 border-border overflow-hidden relative border-none backdrop-blur-sm">
+                  <CardContent className="p-0">
+                    <div className="divide-y divide-white/5">
+                      {[...livePlaylist]
+                        .sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0))
+                        .slice(0, 5)
+                        .map((song, i) => (
+                          <div key={song.id} className="p-4 flex items-center gap-4 group hover:bg-white/5 transition-all">
+                            <div className="w-6 text-center font-black italic text-primary/40 text-lg">{i + 1}</div>
+                            <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 shadow-lg">
+                              {song.coverUrl ? (
+                                <Image src={song.coverUrl} alt={song.title} fill className="object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-primary/20 flex items-center justify-center">
+                                  <Music className="w-4 h-4 text-primary/40" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-black text-xs text-white uppercase italic tracking-tight truncate mb-1">
+                                {song.title}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-0.5">
+                                  {[1, 2, 3, 4, 5].map((s) => (
+                                    <Star 
+                                      key={s} 
+                                      size={10} 
+                                      className={s <= Math.round(song.averageRating) ? 'fill-warning text-warning' : 'text-muted-foreground/20'} 
+                                    />
+                                  ))}
+                                </div>
+                                <span className="text-[9px] font-black text-primary/60 uppercase tracking-tighter">
+                                  {(song.averageRating || 0).toFixed(1)} Pts
+                                </span>
+                              </div>
+                            </div>
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="ghost" size="sm" className="h-8 px-2 text-[10px] font-black uppercase italic text-primary" onClick={() => setActiveTab('perfil')}>
+                                VOTAR
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Grid Premios Actualizada */}
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { image: "/images/camiseta_cdi.png", title: 'Camiseta CDI Oficial', desc: 'Autografiada por el plantel', qty: '5x', gradient: null },
-                    { image: "/images/balon_molten.png", title: 'Balón firmado CDI', desc: 'Balón Molten Vantaggio', qty: '5x', gradient: null, objectPosition: 'center 30%', objectScale: true },
-                    { image: "/images/indumentaria_personal.png", title: 'Indumentaria Deportiva Personal', desc: 'Camiseta, pantalón corto, medias, zapatos', qty: '5x', gradient: null },
-                    { image: "/images/indumentaria_equipo.png", title: 'Indumentaria Equipos', desc: 'Para 15 personas: Camiseta, pantalón corto, medias. Incluye guantes y camiseta mangas largas.', qty: '5x', gradient: null },
-                    { image: null, icon: <Ticket className="w-10 h-10 text-warning drop-shadow-[0_0_12px_rgba(234,179,8,0.6)]" />, title: 'Andes Numerada', desc: 'Acceso total al estadio · 1 temporada completa', qty: '1x', gradient: 'from-yellow-900/80 via-warning/20 to-orange-900/60', emoji: '🎟️' },
-                    { image: null, icon: <Star className="w-10 h-10 text-warning drop-shadow-[0_0_12px_rgba(234,179,8,0.6)]" />, title: 'Andes Accionista', desc: 'Beneficios exclusivos de socio · 1 año completo', qty: '1x', gradient: 'from-amber-900/80 via-yellow-700/30 to-warning/20', emoji: '⭐' },
-                    { image: null, icon: <Crown className="w-10 h-10 text-warning drop-shadow-[0_0_16px_rgba(234,179,8,0.7)]" />, title: 'Pacífico VIP', desc: 'Sector premium frente al mar · 1 temporada', qty: '1x', gradient: 'from-blue-900/80 via-primary/30 to-cyan-900/60', emoji: '🌊' },
-                  ].map((item, i) => (
-                    <Card key={i} className="bg-gradient-to-b from-card to-card/50 border-border overflow-hidden relative group hover:border-warning/30 transition-all shadow-md">
-                      <div className="aspect-square relative flex flex-col items-center justify-center bg-white/5 p-4 gap-3">
-                        {item.image ? (
-                          <div className="absolute inset-0 z-0">
-                            <Image src={item.image} alt={item.title} fill className={`object-cover opacity-80 group-hover:opacity-100 transition-all duration-700 blur-[0.3px] group-hover:blur-0 ${'objectScale' in item && item.objectScale ? 'group-hover:scale-110 scale-105' : 'group-hover:scale-110'}`} style={'objectPosition' in item && item.objectPosition ? { objectPosition: item.objectPosition } : {}} />
-                            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/10 to-transparent" />
-                          </div>
-                        ) : (
-                          <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} transition-all duration-700 group-hover:opacity-90`} />
-                        )}
-                        {!item.image && (
-                          <>
-                            {/* Partículas decorativas de fondo */}
-                            <div className="absolute top-3 left-3 text-3xl opacity-10 group-hover:opacity-20 transition-opacity">{item.emoji}</div>
-                            <div className="absolute bottom-3 right-3 text-3xl opacity-10 group-hover:opacity-20 transition-opacity rotate-12">{item.emoji}</div>
-                            {/* Ícono y texto centrados */}
-                            <div className="relative z-10 flex flex-col items-center gap-2">
-                              <div className="bg-black/30 backdrop-blur-sm p-4 rounded-2xl border border-warning/30 shadow-[0_0_20px_rgba(234,179,8,0.2)] group-hover:scale-110 transition-transform duration-500">
-                                {item.icon}
-                              </div>
-                            </div>
-                          </>
-                        )}
-                        <div className="absolute top-2 right-2 z-20">
-                          <Badge className="bg-warning text-warning-foreground font-black shadow-lg border-2 border-warning/20 italic">{item.qty}</Badge>
-                        </div>
-                      </div>
-                      <CardContent className="p-3 text-center border-t border-white/5 relative z-10">
-                        <p className="text-[11px] font-black text-white leading-tight uppercase tracking-tighter drop-shadow-md">{item.title}</p>
-                        <p className="text-[9px] text-warning/90 mt-1 leading-tight font-bold italic drop-shadow-sm">{item.desc}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
               </div>
 
               {/* Stats Grid */}
               <div className="grid grid-cols-3 gap-3">
                 <Card className="bg-card/90 border-border text-center overflow-hidden">
-                  <CardContent className="py-4">
-                    <div className="text-3xl font-bold text-primary">90%</div>
-                    <div className="text-xs text-muted-foreground mt-1">Supervivencia</div>
-                    <div className="text-xs text-success">⚽ detección temprana</div>
+                  <CardContent className="py-4 px-1">
+                    <div className="text-2xl sm:text-3xl font-black text-primary italic">90%</div>
+                    <div className="text-[10px] text-muted-foreground mt-1 uppercase font-bold">Supervivencia</div>
+                    <div className="text-[9px] text-success font-black uppercase tracking-tighter">⚽ Detección</div>
                   </CardContent>
                 </Card>
                 <Card className="bg-card/90 border-border text-center overflow-hidden">
-                  <CardContent className="py-4">
-                    <div className="text-3xl font-bold text-success">15K</div>
-                    <div className="text-xs text-muted-foreground mt-1">Hombres objetivo</div>
-                    <div className="text-xs text-success">👕 en la región</div>
+                  <CardContent className="py-4 px-1">
+                    <div className="text-2xl sm:text-3xl font-black text-success italic">15K</div>
+                    <div className="text-[10px] text-muted-foreground mt-1 uppercase font-bold">Objetivo</div>
+                    <div className="text-[9px] text-success font-black uppercase tracking-tighter">👕 Región</div>
                   </CardContent>
                 </Card>
                 <Card className="bg-card/90 border-border text-center overflow-hidden">
-                  <CardContent className="py-4">
-                    <div className="text-3xl font-bold text-warning">5</div>
-                    <div className="text-xs text-muted-foreground mt-1">Ligas activas</div>
-                    <div className="text-xs text-warning">🏆 participando</div>
+                  <CardContent className="py-4 px-1">
+                    <div className="text-2xl sm:text-3xl font-black text-warning italic">5</div>
+                    <div className="text-[10px] text-muted-foreground mt-1 uppercase font-bold">Ligas</div>
+                    <div className="text-[9px] text-warning font-black uppercase tracking-tighter">🏆 Activas</div>
                   </CardContent>
                 </Card>
               </div>
@@ -609,113 +606,38 @@ export default function MeteleGolApp() {
               <Card className="bg-gradient-to-r from-primary/10 to-success/10 border-primary/20">
                 <CardContent className="py-4">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center shrink-0 border border-primary/30">
                       <Image src="/images/crack_oyarzo.png" alt="Info" width={40} height={40} className="object-cover rounded-full" />
                     </div>
                     <div>
-                      <p className="font-medium">¿Sabías que?</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        El examen PSA es un simple análisis de sangre que toma <span className="text-primary font-medium">menos de 5 minutos</span>
-                        y puede salvar tu vida. ¡No duele y es <span className="text-success font-medium">totalmente gratis</span>!
+                      <p className="font-black text-sm uppercase italic">¿Sabías que?</p>
+                      <p className="text-sm text-muted-foreground mt-1 leading-tight">
+                        El examen PSA es un simple análisis de sangre que toma <span className="text-primary font-bold">menos de 5 minutos</span>
+                        y puede salvar tu vida. ¡No duele y es <span className="text-success font-bold">totalmente gratis</span>!
                       </p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Next Operativo */}
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <h2 className="text-lg font-semibold flex items-center gap-2">
-                    🏟️ Próximo operativo
-                  </h2>
-                  <Button variant="ghost" size="sm" onClick={() => setActiveTab('operativos')}>
-                    Ver calendario <ChevronRight className="h-4 w-4 ml-1" />
+              {/* Next Operativo - Usar el nuevo OperativoCard */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-black italic text-white uppercase italic">🏟️ Próximo operativo</h2>
+                  <Button variant="ghost" size="sm" onClick={() => setActiveTab('operativos')} className="text-xs font-bold uppercase text-primary">
+                    Ver más <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
-                <Card className="bg-card/90 border-primary/30 cursor-pointer hover:border-primary transition-all overflow-hidden"
-                  onClick={() => handleSchedule(operativosMock[0])}>
-                  <div className="flex">
-                    <div className="w-24 h-24 relative">
-                      <Image src={operativosMock[0].imagen} alt="Operativo" fill className="object-cover" />
-                    </div>
-                    <CardContent className="py-3 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{operativosMock[0].lugar}</p>
-                      </div>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                        <Calendar className="h-3 w-3" />
-                        {operativosMock[0].fecha} • {operativosMock[0].hora}
-                      </p>
-                      <Badge className="bg-success/20 text-success border-success/30 mt-2">
-                        {operativosMock[0].cuposDisponibles} cupos disponibles
-                      </Badge>
-                    </CardContent>
-                  </div>
-                </Card>
+                {liveOperativos.length > 0 && (
+                  <OperativoCard operativo={liveOperativos[0]} onSchedule={handleSchedule} />
+                )}
               </div>
 
               {/* Leaderboard - Solo Clubes */}
-              <div className="space-y-4">
-                <Card className="bg-card/90 border-border overflow-hidden relative group">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-warning/5 pointer-events-none" />
-                  <div className="flex flex-col items-center justify-center p-6 text-center border-b border-white/5 bg-gradient-to-b from-primary/5 to-transparent relative z-10">
-                    <Trophy className="h-10 w-10 text-warning mb-2 drop-shadow-[0_0_8px_rgba(234,179,8,0.4)] transition-transform group-hover:scale-110 duration-500" />
-                    <h3 className="text-xl font-black italic text-white uppercase tracking-tighter">Ranking de Clubes</h3>
-                    <p className="text-[10px] text-primary font-black uppercase tracking-widest mt-1">¡El club con más hinchas gana indumentaria completa!</p>
-                  </div>
-                  <CardContent className="py-4 relative z-10">
-                    <div className="space-y-2">
-                      {clubLeaderboard.map((item, i) => (
-                        <div key={item.id} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-primary/20 transition-all group/item">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs italic ${i === 0 ? 'bg-warning text-warning-foreground shadow-[0_0_10px_rgba(234,179,8,0.3)]' : 'bg-muted/30 text-muted-foreground'}`}>
-                            {i + 1}
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-black text-white text-sm uppercase italic tracking-tight">{item.name}</p>
-                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{item.exams} EXÁMENES REALIZADOS</p>
-                          </div>
-                          <div className="text-right">
-                            <div className="bg-primary/20 px-3 py-1 rounded-lg border border-primary/20 shadow-inner group-hover/item:bg-primary/30 transition-colors">
-                              <p className="font-black text-primary text-sm leading-none">{item.exams}</p>
-                              <p className="text-[8px] font-black text-warning mt-0.5 whitespace-nowrap uppercase">Hinchas</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <LeaderboardClubes clubLeaderboard={liveLeaderboard.map((c) => ({ id: c.id, nombre: c.nombre, miembros: c.miembros, logo: c.logo || '/images/amateur.png' }))} />
 
-              {/* Auspiciadores - Integración Fina y Profesional */}
-              <div className="space-y-6 text-center pt-8">
-                <div className="flex flex-col items-center gap-1">
-                  <h2 className="text-xl font-black italic text-white uppercase tracking-tight opacity-70">Auspiciadores</h2>
-                  <div className="h-[1px] w-16 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                </div>
-
-                <div className="flex flex-wrap justify-center items-center gap-6 md:gap-12 px-6 bg-white/[0.01] py-8 rounded-3xl border border-white/5">
-                  {[
-                    // GORE: Tiene fondo claro y letras oscuras. invert + mix-blend-screen borra el fondo y vuelve blanco el logo.
-                    { src: "/images/logo_gorecolor.png", alt: "GORE Tarapacá", scale: "scale-125", filter: "invert grayscale contrast-[1.2] mix-blend-screen" },
-                    { src: "/images/logo_cdi_white.png", alt: "Club Deportes Iquique", scale: "scale-125", filter: "" },
-                    { src: "/images/logo_collahuasi_trans_white.png", alt: "Collahuasi", scale: "scale-110", filter: "" },
-                    // AFSI: Tiene escudo blanco y fondo blanco/claro. invert + mix-blend-screen dejará el interior negro y el borde blanco. Para evitar que quede feo, 
-                    // simplemente usemos la versión real a color si mix blend no funciona bien. Para probar, usamos la versión original con estas clases probadas.
-                    { src: "/images/logo_afsi_color.png", alt: "AFSI", scale: "scale-110", filter: "invert grayscale contrast-[1.2] mix-blend-screen" }
-                  ].map((sponsor, i) => (
-                    <div key={i} className={`relative w-24 h-12 md:w-32 md:h-16 group ${sponsor.scale} transition-all duration-500`}>
-                      <Image
-                        src={sponsor.src}
-                        alt={sponsor.alt}
-                        fill
-                        className={`object-contain opacity-60 group-hover:opacity-100 transition-all duration-500 filter drop-shadow-[0_0_8px_rgba(255,255,255,0.1)] ${sponsor.filter || ''}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* Auspiciadores - Componente Refinado */}
+              <AuspiciadoresGrid />
 
             </div>
           )}
@@ -742,504 +664,48 @@ export default function MeteleGolApp() {
               )}
 
               <div className="space-y-4">
-                {operativosMock.map((operativo) => (
-                  <Card key={operativo.id} className={`bg-card/90 border-2 border-dashed border-border/50 relative overflow-hidden transition-all group ${operativo.estado === 'completo' ? 'opacity-50 grayscale' : 'hover:border-primary/50 hover:shadow-lg shadow-primary/5'}`}
-                    onClick={() => operativo.estado !== 'completo' && handleSchedule(operativo)}>
-                    {/* Tick de Estadio - Perforación Visual */}
-                    <div className="absolute top-0 bottom-0 left-[25%] border-l-2 border-dashed border-border/30 z-20" />
-
-                    <div className="flex h-32">
-                      {/* Lado Fecha (Stub) */}
-                      <div className="w-[25%] bg-primary/10 flex flex-col items-center justify-center border-r border-border/20 p-2 text-center">
-                        <span className="text-[10px] font-black text-primary uppercase tracking-tighter">FECHA</span>
-                        <span className="text-xl font-black text-white leading-none">{operativo.fecha.split(' ')[0]}</span>
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase">{operativo.fecha.split(' ')[1]}</span>
-                      </div>
-
-                      {/* Cuerpo de la Entrada */}
-                      <div className="flex-1 flex overflow-hidden">
-                        <div className="w-24 h-full relative shrink-0">
-                          <Image src={operativo.imagen} alt={operativo.lugar} fill className="object-cover opacity-60 group-hover:scale-110 transition-transform duration-700" />
-                          <div className="absolute inset-0 bg-gradient-to-r from-card/80 to-transparent" />
-                        </div>
-
-                        <CardContent className="py-3 px-4 flex-1 flex flex-col justify-between">
-                          <div>
-                            <p className="text-xs font-black text-primary uppercase tracking-widest mb-1">PARTIDO PREVENTIVO</p>
-                            <p className="font-black text-white text-lg leading-tight uppercase italic">{operativo.lugar}</p>
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 font-bold">
-                              <span className="flex items-center gap-1"><Clock className="h-3 w-3 text-primary" /> {operativo.hora}</span>
-                              <span className="flex items-center gap-1"><MapPin className="h-3 w-3 text-primary" /> {operativo.direccion}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between mt-2">
-                            {operativo.estado === 'completo' ? (
-                              <Badge variant="destructive" className="text-[10px] font-black uppercase italic">AGOTADO</Badge>
-                            ) : (
-                              <Badge className="bg-success text-success-foreground text-[10px] font-black uppercase animate-pulse">
-                                {operativo.cuposDisponibles} CUPOS LIBRES
-                              </Badge>
-                            )}
-                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">ADMIT ONE ⚽</span>
-                          </div>
-                        </CardContent>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                {liveOperativos.length > 0 ? (
+                  liveOperativos.map((operativo) => (
+                    <OperativoCard 
+                      key={operativo.id} 
+                      operativo={operativo} 
+                      onSchedule={handleSchedule} 
+                    />
+                  ))
+                ) : (
+                  <div className="py-12 text-center space-y-4">
+                    <Calendar className="w-12 h-12 text-muted-foreground mx-auto opacity-20" />
+                    <p className="text-muted-foreground font-bold uppercase italic">No hay operativos programados para hoy</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {/* ===== TAB INFORMACIÓN (SEGUNDO TIEMPO) ===== */}
           {activeTab === 'resultados' && (
-            <div className="px-4 py-6 space-y-6">
-              <div className="text-center space-y-2">
-                <h1 className="text-3xl font-black italic text-white uppercase italic">Segundo Tiempo</h1>
-                <p className="text-primary text-sm font-bold uppercase tracking-widest">El equipo te necesita para ganar</p>
-              </div>
-
-              {!user && (
-                <Alert className="border-primary/30 bg-primary/5 py-6">
-                  <Info className="h-6 w-6 text-primary" />
-                  <div className="flex flex-col gap-4">
-                    <AlertTitle className="text-primary text-xl font-black uppercase italic">Únete a la Previa</AlertTitle>
-                    <AlertDescription className="flex flex-col sm:flex-row gap-3">
-                      <Button className="flex-1 bg-primary text-primary-foreground font-black py-6 text-lg uppercase shadow-lg shadow-primary/20" onClick={() => setShowRegistration(true)}>
-                        ⚽ ¡Fichar ahora mismo!
-                      </Button>
-                      <Button variant="outline" className="flex-1 border-primary/50 text-white font-bold py-6 text-lg uppercase" onClick={() => setShowLogin(true)}>
-                        Soy del equipo
-                      </Button>
-                    </AlertDescription>
-                  </div>
-                </Alert>
-              )}
-
-              <Tabs defaultValue="info" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 bg-card/80 h-auto gap-1 p-1">
-                  <TabsTrigger value="info" className="text-[10px] uppercase font-bold">Info</TabsTrigger>
-                  <TabsTrigger value="psa" className="text-[10px] uppercase font-bold">PSA</TabsTrigger>
-                  <TabsTrigger value="riesgo" className="text-[10px] uppercase font-bold">Riesgo</TabsTrigger>
-                  <TabsTrigger value="faq" className="text-[10px] uppercase font-bold">FAQ</TabsTrigger>
-                  <TabsTrigger value="manual" className="text-[10px] uppercase font-bold">Manual</TabsTrigger>
-                  <TabsTrigger value="legal" className="text-[10px] uppercase font-bold">Legal</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="info" className="space-y-4 mt-4">
-                  {infoCards.map((card, index) => (
-                    <Card key={index} className="bg-card/90 border-2 border-white/5 hover:border-primary/30 transition-all group overflow-hidden">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 -mr-8 -mt-8 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors" />
-                      <CardContent className="py-5 relative z-10">
-                        <div className="flex items-start gap-4">
-                          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20 shadow-inner group-hover:scale-110 transition-transform">
-                            <card.icon className="h-7 w-7 text-primary drop-shadow-[0_0_5px_rgba(0,186,242,0.3)]" />
-                          </div>
-                          <div>
-                            <p className="font-black text-white uppercase italic tracking-tight mb-1">{card.title}</p>
-                            <p className="text-sm text-muted-foreground leading-relaxed font-medium">{card.content}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </TabsContent>
-
-                <TabsContent value="psa" className="mt-4">
-                  <Card className="bg-card/90 border-border overflow-hidden">
-                    <CardHeader className="bg-primary/5 border-b border-border/50">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Activity className="h-5 w-5 text-primary" /> Marcador de Salud PSA
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6 pt-6">
-                      <p className="text-sm text-muted-foreground italic leading-relaxed">
-                        El Antígeno Prostático Específico (PSA) es el "marcador del partido".
-                        Detectarlo a tiempo es la clave para ganar el encuentro antes de que avance.
-                      </p>
-
-                      {/* Marcador Electrónico PSA */}
-                      <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-4 bg-black/40 p-4 rounded-2xl border-2 border-success/30 relative">
-                          <div className="flex-1">
-                            <p className="text-[10px] font-black text-success uppercase tracking-widest mb-1">RESULTADO ÓPTIMO</p>
-                            <p className="text-sm font-bold text-white">Riesgo Bajo / Detección Normal</p>
-                          </div>
-                          <div className="bg-black border border-success/50 px-4 py-2 rounded-lg shadow-[0_0_15px_rgba(34,197,94,0.2)]">
-                            <span className="text-4xl font-black text-success font-mono italic">{"<"}4.0</span>
-                            <p className="text-[8px] text-center font-bold text-success/70">ng/mL</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-4 bg-black/40 p-4 rounded-2xl border-2 border-warning/30 relative">
-                          <div className="flex-1">
-                            <p className="text-[10px] font-black text-warning uppercase tracking-widest mb-1">REVISIÓN NECESARIA</p>
-                            <p className="text-sm font-bold text-white">Consultar con el Director Técnico (Urólogo)</p>
-                          </div>
-                          <div className="bg-black border border-warning/50 px-4 py-2 rounded-lg shadow-[0_0_15px_rgba(234,179,8,0.2)]">
-                            <span className="text-4xl font-black text-warning font-mono italic">{">"}4.0</span>
-                            <p className="text-[8px] text-center font-bold text-warning/70">ng/mL</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <Alert className="border-warning/30 bg-warning/5">
-                        <AlertCircle className="h-4 w-4 text-warning" />
-                        <AlertDescription className="text-xs font-medium">
-                          Un PSA elevado <strong>no siempre significa cáncer</strong>. Existen inflamaciones o crecimientos benignos. ¡Pide tu revisión oficial!
-                        </AlertDescription>
-                      </Alert>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="riesgo" className="mt-4">
-                  <Card className="bg-card/90 border-border overflow-hidden">
-                    <CardHeader className="bg-warning/10 border-b border-border/50">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Shield className="h-5 w-5 text-warning" /> Factores de Riesgo
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3 pt-4">
-                      {[
-                        { icon: <Clock className="h-5 w-5 text-warning" />, title: 'Edad de Juego', text: 'Hombres mayores a 40-50 años' },
-                        { icon: <Users className="h-5 w-5 text-warning" />, title: 'ADN Futbolero', text: 'Antecedentes familiares directos' },
-                        { icon: <Activity className="h-5 w-5 text-warning" />, title: 'Condición Física', text: 'Obesidad y sedentarismo' },
-                        { icon: <Target className="h-5 w-5 text-warning" />, title: 'Dieta del Equipo', text: 'Consumo alto de grasas saturadas' },
-                      ].map((item, index) => (
-                        <div key={index} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-warning/20 transition-all">
-                          <div className="bg-warning/10 p-2 rounded-lg">{item.icon}</div>
-                          <div>
-                            <p className="text-[10px] font-black text-warning uppercase tracking-widest leading-none mb-1">{item.title}</p>
-                            <p className="font-bold text-white text-sm">{item.text}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="faq" className="mt-4 space-y-3">
-                  <div className="bg-primary/5 p-4 rounded-2xl border border-primary/20 mb-4 flex items-center gap-3">
-                    <div className="bg-primary/20 p-2 rounded-lg">
-                      <Users className="h-5 w-5 text-primary" />
-                    </div>
-                    <p className="text-xs font-black text-white uppercase italic tracking-wider">Charla Técnica: Preguntas del Equipo</p>
-                  </div>
-                  {[
-                    { q: '¿El examen duele?', a: '¡Para nada! Es un análisis de sangre rápido. Menos doloroso que un roce en el área.' },
-                    { q: '¿Es totalmente gratis?', a: 'Afirmativo. El PSA no tiene costo en nuestros operativos oficiales de campaña.' },
-                    { q: '¿Cuándo sale el resultado?', a: 'El VAR de la salud demora entre 3 a 5 días hábiles en darte el veredicto.' },
-                    { q: '¿Qué pasa si rindo alto?', a: 'No te preocupes. Te contactamos para agendar con un especialista (el DT médico).' },
-                  ].map((item, index) => (
-                    <Card key={index} className="bg-card/90 border-border hover:border-primary/20 transition-all cursor-help group">
-                      <CardContent className="py-4">
-                        <div className="flex gap-3">
-                          <HelpCircle className="h-5 w-5 text-warning shrink-0 group-hover:rotate-12 transition-transform" />
-                          <div>
-                            <p className="font-black text-white text-sm uppercase leading-tight mb-2 tracking-tight">{item.q}</p>
-                            <p className="text-xs text-muted-foreground leading-relaxed">{item.a}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </TabsContent>
-
-                <TabsContent value="manual" className="mt-4">
-                  <Card className="bg-card/90 border-border overflow-hidden">
-                    <CardHeader className="bg-primary/5 border-b border-border/50">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <BookOpen className="h-5 w-5 text-primary" /> Manual de Usuario
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-6 space-y-4">
-                      <div className="space-y-4 text-sm">
-                        <div className="flex gap-3">
-                          <div className="bg-primary/10 p-2 rounded-lg h-fit text-primary font-black italic text-xs">01</div>
-                          <div>
-                            <p className="font-black text-white uppercase italic">Fichaje (Registro)</p>
-                            <p className="text-muted-foreground text-xs">Completa tu ficha técnica para saltar a la cancha y participar en sorteos.</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-3">
-                          <div className="bg-primary/10 p-2 rounded-lg h-fit text-primary font-black italic text-xs">02</div>
-                          <div>
-                            <p className="font-black text-white uppercase italic">Agendamiento</p>
-                            <p className="text-muted-foreground text-xs">Selecciona un operativo en "1er Tiempo" y asegura tu titularidad.</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-3">
-                          <div className="bg-primary/10 p-2 rounded-lg h-fit text-primary font-black italic text-xs">03</div>
-                          <div>
-                            <p className="font-black text-white uppercase italic">Premios</p>
-                            <p className="text-muted-foreground text-xs">Cada examen validado por el VAR médico te da acceso al sorteo final.</p>
-                          </div>
-                        </div>
-                      </div>
-                      <Separator className="bg-border/50" />
-                      <Button variant="outline" className="w-full border-primary/30 group" asChild>
-                        <a href="#" className="flex items-center justify-center gap-2">
-                          <Download className="h-4 w-4 group-hover:animate-bounce" /> Descargar Manual Completo (PDF)
-                        </a>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="legal" className="mt-4">
-                  <Card className="bg-card/90 border-border overflow-hidden">
-                    <CardHeader className="bg-secondary/10 border-b border-border/50">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Scale className="h-5 w-5 text-secondary" /> Propiedad y Uso
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-6 space-y-4 text-xs leading-relaxed text-muted-foreground">
-                      <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                        <p className="font-bold text-white mb-2 uppercase tracking-widest text-[10px]">Propiedad Intelectual</p>
-                        <p>MUG Z (Métele un Gol al Cáncer) y sus contenidos son propiedad exclusiva de la <strong>Fundación SESP</strong> e <strong>Impacta</strong>.</p>
-                      </div>
-                      <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                        <p className="font-bold text-white mb-2 uppercase tracking-widest text-[10px]">Uso de la Aplicación</p>
-                        <p>Uso gratuito para fines de prevención de salud regional. Prohibida su reproducción comercial total o parcial.</p>
-                      </div>
-                      <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                        <p className="font-bold text-white mb-2 uppercase tracking-widest text-[10px]">Responsabilidad Técnica</p>
-                        <p>La app es una herramienta de gestión. Los resultados clínicos son responsabilidad de las entidades de salud facultadas.</p>
-                      </div>
-                      <p className="text-center italic mt-4 opacity-50">© 2026 Fundación SESP / Impacta. Todos los derechos reservados.</p>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </div>
+            <InfoSalud />
           )}
 
           {/* ===== GALERÍA TAB ===== */}
           {activeTab === 'galeria' && (
-            <div className="px-4 py-6 space-y-6">
-              {/* Encabezado estilo consistente con el resto de la app */}
-              <div className="text-center space-y-2">
-                <div className="flex items-center justify-center gap-3 mb-1">
-                  <div className="h-[2px] w-8 bg-gradient-to-r from-transparent to-primary/50 rounded-full" />
-                  <p className="text-[11px] font-black text-primary uppercase tracking-[0.4em]">Campaña 2026</p>
-                  <div className="h-[2px] w-8 bg-gradient-to-l from-transparent to-primary/50 rounded-full" />
-                </div>
-                <h1 className="text-3xl font-black italic text-white uppercase tracking-tight">📸 Galería</h1>
-                <div className="flex items-center justify-center gap-2">
-                  <p className="text-primary text-sm font-bold uppercase tracking-widest">Los mejores momentos</p>
-                  <Badge className="bg-primary/20 text-primary border-primary/30 font-black text-[10px]">{galeriaMock.length} FOTOS</Badge>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                {galeriaMock.map((item, idx) => (
-                  <Card
-                    key={item.id}
-                    className="bg-card/90 border-border overflow-hidden group cursor-pointer hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/10"
-                    onClick={() => { setSelectedGaleriaItem(item); setShowGaleriaLightbox(true) }}
-                  >
-                    <div className="aspect-square relative overflow-hidden">
-                      <Image src={item.imagen} alt={item.titulo} fill className="object-cover group-hover:scale-108 transition-transform duration-500" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                      {/* Badge NUEVA en las últimas 2 fotos */}
-                      {idx >= galeriaMock.length - 2 && (
-                        <div className="absolute top-2 left-2">
-                          <Badge className="bg-success text-success-foreground font-black text-[9px] uppercase animate-pulse shadow-md">🆕 NUEVA</Badge>
-                        </div>
-                      )}
-                      {/* Ícono expand al hover */}
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <div className="bg-black/60 backdrop-blur-sm rounded-full p-1.5">
-                          <ExternalLink className="w-3 h-3 text-white" />
-                        </div>
-                      </div>
-                      <div className="absolute bottom-2 left-2 right-2">
-                        <p className="font-black text-sm text-white uppercase italic leading-tight tracking-tight">{item.titulo}</p>
-                        <div className="flex items-center gap-3 text-xs text-white/80 mt-1">
-                          <span className="flex items-center gap-1 font-bold"><ThumbsUp className="w-3 h-3 text-primary" />{item.likes}</span>
-                          <span className="flex items-center gap-1 font-bold"><MessageCircle className="w-3 h-3 text-primary" />{item.comentarios}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-
-              <Card className="bg-gradient-to-r from-primary/10 to-success/10 border-primary/20">
-                <CardContent className="py-4 text-center">
-                  <Camera className="h-8 w-8 text-primary mx-auto mb-2" />
-                  <p className="font-black text-white uppercase italic text-sm">¿Tienes fotos de la campaña?</p>
-                  <p className="text-xs text-muted-foreground mb-3">Comparte tus momentos con la comunidad</p>
-                  <Button variant="outline" className="border-primary/50 font-black uppercase text-xs">
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Subir contenido
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+            <Galeria items={galeriaMock} onOpenItem={(item) => { setSelectedGaleriaItem(item); setShowGaleriaLightbox(true) }} />
           )}
 
           {/* ===== PERFIL TAB ===== */}
           {activeTab === 'perfil' && (
-            <div className="px-4 py-6 space-y-6">
-              {!user ? (
-                <div className="text-center py-12">
-                  <div className="w-24 h-24 mx-auto rounded-full overflow-hidden bg-primary/10 mb-4">
-                    <Image src="/images/camiseta_cdi.png" alt="Perfil" width={96} height={96} className="object-cover" />
-                  </div>
-                  <h2 className="text-xl font-semibold mb-2">No has iniciado sesión</h2>
-                  <p className="text-muted-foreground mb-6">Inscríbete o accede a tu cuenta para ver tu perfil</p>
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button className="bg-primary text-primary-foreground text-lg py-6 px-8 rounded-xl font-black shadow-lg shadow-primary/20 uppercase" onClick={() => setShowRegistration(true)}>
-                      <UserPlus className="w-5 h-5 mr-3" /> Fichar
-                    </Button>
-                    <Button variant="outline" onClick={() => setShowLogin(true)}>
-                      <LogOut className="w-4 h-4 mr-2" /> Soy del equipo
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* User Info Card */}
-                  <Card className="bg-card/90 border-border overflow-hidden">
-                    <div className="h-20 relative overflow-hidden">
-                      <Image src="/images/camiseta_cdi.png" alt="Banner" fill className="object-cover opacity-30" />
-                    </div>
-                    <CardContent className="pt-12 pb-4 relative">
-                      <div className="absolute -top-10 left-4">
-                        {/* Avatar dinámico con iniciales del usuario */}
-                        <div className="w-20 h-20 rounded-2xl border-4 border-background bg-gradient-to-br from-primary/40 to-primary/10 flex items-center justify-center shadow-lg shadow-primary/20">
-                          <span className="text-2xl font-black text-white uppercase tracking-tight">
-                            {user.nombre.split(' ').map((n: string) => n[0]).slice(0, 2).join('')}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h2 className="text-xl font-semibold">{user.nombre}</h2>
-                          <p className="text-muted-foreground text-sm">{user.comuna}</p>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {user.club && (
-                              <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 font-black uppercase text-[10px]">
-                                🏆 {user.club}
-                              </Badge>
-                            )}
-                            {user.esJugador && (
-                              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-black uppercase text-[10px]">
-                                ⚽ {user.equipo || 'Liga Amateur'}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="icon" onClick={() => setShowQR(true)}>
-                          <QrCode className="h-5 w-5 text-primary" />
-                        </Button>
-                      </div>
-                      <Separator />
-                      <div className="grid grid-cols-2 gap-4 text-sm mt-4">
-                        <div>
-                          <p className="text-muted-foreground text-xs">RUT</p>
-                          <p className="font-medium">{user.rut}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground text-xs">Edad</p>
-                          <p className="font-medium">{user.edad} años</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Estado de Participación */}
-                  <Card className="relative overflow-hidden border-2 border-primary/30 shadow-lg shadow-primary/5 group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-success/5 pointer-events-none" />
-                    <CardContent className="py-6 relative z-10">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-1">ESTADO DEL JUGADOR</p>
-                            <h3 className="text-2xl font-black text-white italic shadow-primary/10">LISTO PARA EL SORTEO</h3>
-                          </div>
-                          <div className="bg-primary/20 p-3 rounded-2xl rotate-12 group-hover:rotate-0 transition-all duration-500">
-                            <Check className="h-8 w-8 text-primary shadow-glow" />
-                          </div>
-                        </div>
-
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-6 h-6 rounded-full bg-success flex items-center justify-center shrink-0">
-                              <Check className="w-3 h-3 text-white" />
-                            </div>
-                            <p className="text-xs font-bold text-white/90 uppercase">1. FICHADO (INSCRIPCIÓN ÉXITOSA)</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-6 h-6 rounded-full bg-success flex items-center justify-center shrink-0">
-                              <Check className="w-3 h-3 text-white" />
-                            </div>
-                            <p className="text-xs font-bold text-white/90 uppercase">2. PARTIDO JUGADO (TEST PSA REALIZADO)</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-6 h-6 rounded-full bg-success flex items-center justify-center shrink-0">
-                              <Check className="w-3 h-3 text-white" />
-                            </div>
-                            <p className="text-xs font-bold text-warning uppercase">3. CONFIRMADO (PARTICIPA EN SORTEO 04/07)</p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Badges / Vitrina de Trofeos */}
-                  <div>
-                    <h3 className="text-lg font-black italic text-white uppercase mb-3 flex items-center gap-2">
-                      <Crown className="w-5 h-5 text-warning" /> Vitrina de Trofeos
-                    </h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      {badges.map((badge) => (
-                        <BadgeItem key={badge.id} badge={badge} earned={user.badges.includes(badge.id)} />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="space-y-3">
-                    <Button variant="outline" className="w-full justify-start" onClick={() => setShowQR(true)}>
-                      <User className="mr-3 h-4 w-4 text-primary" /> Mi Ficha Digital
-                    </Button>
-
-                    {/* Share & Earn Section */}
-                    <Card className="bg-gradient-to-br from-primary/20 to-card border-primary/30 overflow-hidden relative group">
-                      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform">
-                        <Share2 className="w-16 h-16" />
-                      </div>
-                      <CardContent className="p-5 relative z-10">
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="bg-primary/20 p-2 rounded-xl">
-                            <Users className="h-6 w-6 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-black text-white uppercase tracking-tight italic">Arma tu propio equipo</p>
-                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight leading-tight">Envía este enlace a tus amigos de la liga y aseguren el premio para su club.</p>
-                          </div>
-                        </div>
-                        <Button className="w-full bg-primary text-primary-foreground font-black uppercase italic shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all" onClick={handleShare} disabled={isLoading}>
-                          <Share2 className="w-5 h-5 mr-2" /> Alienta al Equipo
-                        </Button>
-                      </CardContent>
-                    </Card>
-
-                    <Button variant="outline" className="w-full justify-start">
-                      <Download className="mr-3 h-4 w-4 text-primary" /> Descargar certificado
-                    </Button>
-                    <Separator />
-                    <Button variant="ghost" className="w-full justify-start text-destructive" onClick={handleLogout}>
-                      <LogOut className="mr-3 h-4 w-4" /> Cerrar sesión
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
+            <PerfilUsuario 
+              user={user} 
+              allBadges={badges} 
+              onShowRegistration={() => setShowRegistration(true)} 
+              onShowLogin={() => setShowLogin(true)} 
+              onShowQR={() => setShowQR(true)} 
+              onShare={handleShare} 
+              onLogout={handleLogout} 
+              isLoading={isLoading} 
+              songs={livePlaylist}
+              onRateSong={handleRateSong}
+            />
           )}
 
           {/* ===== MÁS TAB ===== */}
@@ -1311,7 +777,7 @@ export default function MeteleGolApp() {
         <Dialog open={showRegistration} onOpenChange={setShowRegistration}>
           <DialogContent className="max-w-md bg-card border-border max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>⚽ Ficha por tu equipo</DialogTitle>
+              <DialogTitle>⚽ FICHAR POR TU EQUIPO</DialogTitle>
               <DialogDescription>¡Súmate a la formación inicial de "Métele un Gol al Cáncer"!</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -1427,7 +893,7 @@ export default function MeteleGolApp() {
               </div>
               <DialogHeader>
                 <DialogTitle className="text-2xl font-black italic text-white uppercase text-center w-full">
-                  {showSuccessRegistration ? '¡FICHAJE EXITOSO!' : 'MI FICHA DIGITAL'}
+                  {showSuccessRegistration ? '¡FICHAJE COMPLETADO!' : 'MI FICHA DIGITAL'}
                 </DialogTitle>
                 <DialogDescription className="text-primary font-bold uppercase tracking-widest text-center w-full">
                   {showSuccessRegistration ? 'Bienvenido a la formación inicial' : 'Tu llave para el sorteo'}

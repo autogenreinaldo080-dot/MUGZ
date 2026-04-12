@@ -19,7 +19,17 @@ export default async function AdminDashboard() {
         // @ts-ignore
         users = await prisma.user.findMany({ orderBy: { createdAt: 'desc' } });
         // @ts-ignore
-        photos = await (prisma as any).photo.findMany({ orderBy: { createdAt: 'desc' } });
+        photos = await (prisma as any).photo.findMany({ 
+            include: { user: true },
+            orderBy: { createdAt: 'desc' } 
+        });
+        
+        // Transformar para que el client reciba lo que espera (userName)
+        photos = photos.map((p: any) => ({
+            ...p,
+            userName: p.user?.nombre || 'Usuario desconocido',
+            fecha: p.createdAt.toLocaleDateString('es-CL'),
+        }));
 
         await prisma.$disconnect();
     } catch (e) {

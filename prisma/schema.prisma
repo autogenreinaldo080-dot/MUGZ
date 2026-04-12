@@ -27,6 +27,7 @@ model User {
   badges        Badge[]
   operativos    Operativo[] @relation("UserOperativos")
   photos        Photo[]
+  ratings       Rating[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -60,10 +61,35 @@ model Badge {
 }
 
 model Photo {
+  id          String   @id @default(cuid())
+  url         String
+  titulo      String?
+  descripcion String?
+  userId      String
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model Song {
+  id          String   @id @default(cuid())
+  title       String
+  artist      String
+  audioUrl    String
+  coverUrl    String?
+  ratings     Rating[]
+  createdAt   DateTime @default(now())
+}
+
+model Rating {
   id        String   @id @default(cuid())
-  url       String
+  stars     Int
   userId    String
-  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  songId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, songId])
 }
