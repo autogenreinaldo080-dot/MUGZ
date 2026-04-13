@@ -92,12 +92,12 @@ interface GaleriaItem {
   imagen: string
 }
 
-// Mock data
+// Mock data de operativos - IDs con prefijo 'm' para detectar modo demo
 const operativosMock: Operativo[] = [
-  { id: 1, fecha: '15 Abril 2026', hora: '09:00 - 14:00', lugar: 'Estadio Tierra de Campeones', direccion: 'Av. Playa Brava 1234, Iquique', cupos: 100, cuposDisponibles: 45, estado: 'disponible', imagen: '/images/cdi2.png' },
-  { id: 2, fecha: '22 Abril 2026', hora: '09:00 - 14:00', lugar: 'Complejo Deportivo Alto Hospicio', direccion: 'Av. Los Aromos 567, Alto Hospicio', cupos: 80, cuposDisponibles: 80, estado: 'disponible', imagen: '/images/amateur.png' },
-  { id: 3, fecha: '29 Abril 2026', hora: '10:00 - 15:00', lugar: 'Mall Zofri', direccion: 'Zona Franca, Iquique', cupos: 120, cuposDisponibles: 0, estado: 'completo', imagen: '/images/cdi2.png' },
-  { id: 4, fecha: '6 Mayo 2026', hora: '09:00 - 13:00', lugar: 'Hospital Regional de Iquique', direccion: 'Av. Héroes de la Concepción 789', cupos: 60, cuposDisponibles: 60, estado: 'disponible', imagen: '/images/crack_oyarzo.png' },
+  { id: 'demo-1' as any, fecha: '15 Abril 2026', hora: '09:00 - 14:00', lugar: 'Estadio Tierra de Campeones', direccion: 'Av. Playa Brava 1234, Iquique', cupos: 100, cuposDisponibles: 45, estado: 'disponible', imagen: '/images/cdi2.png' },
+  { id: 'demo-2' as any, fecha: '22 Abril 2026', hora: '09:00 - 14:00', lugar: 'Complejo Deportivo Alto Hospicio', direccion: 'Av. Los Aromos 567, Alto Hospicio', cupos: 80, cuposDisponibles: 80, estado: 'disponible', imagen: '/images/amateur.png' },
+  { id: 'demo-3' as any, fecha: '29 Abril 2026', hora: '10:00 - 15:00', lugar: 'Mall Zofri', direccion: 'Zona Franca, Iquique', cupos: 120, cuposDisponibles: 0, estado: 'completo', imagen: '/images/cdi2.png' },
+  { id: 'demo-4' as any, fecha: '6 Mayo 2026', hora: '09:00 - 13:00', lugar: 'Hospital Regional de Iquique', direccion: 'Av. Héroes de la Concepción 789', cupos: 60, cuposDisponibles: 60, estado: 'disponible', imagen: '/images/crack_oyarzo.png' },
 ]
 
 const galeriaMock: GaleriaItem[] = [
@@ -105,6 +105,12 @@ const galeriaMock: GaleriaItem[] = [
   { id: 2, tipo: 'foto', titulo: 'Ligas Amateur Unidas', descripcion: 'Jugadores de ANFA participando', fecha: '18 Abr 2026', likes: 189, comentarios: 32, imagen: '/images/amateur.png' },
   { id: 3, tipo: 'foto', titulo: 'CDI en Acción', descripcion: 'Socios y abonados comprometidos', fecha: '20 Abr 2026', likes: 456, comentarios: 78, imagen: '/images/cdi2.png' },
   { id: 4, tipo: 'foto', titulo: 'Crack Oyarzo Apoya', descripcion: 'Embajador de la campaña', fecha: '22 Abr 2026', likes: 321, comentarios: 56, imagen: '/images/crack_oyarzo.png' },
+  { id: 5, tipo: 'foto', titulo: 'Exámenes en Terreno', descripcion: 'Tomas de muestra en operativo móvil', fecha: '25 Abr 2026', likes: 198, comentarios: 28, imagen: '/images/indumentaria_equipo.png' },
+  { id: 6, tipo: 'foto', titulo: 'Equipo Médico MUG Z', descripcion: 'Profesionales comprometidos con la salud', fecha: '27 Abr 2026', likes: 276, comentarios: 41, imagen: '/images/indumentaria_personal.png' },
+  { id: 7, tipo: 'foto', titulo: 'Camiseta Oficial', descripcion: 'La indumentaria de la campaña', fecha: '28 Abr 2026', likes: 412, comentarios: 67, imagen: '/images/camiseta_cdi.png' },
+  { id: 8, tipo: 'foto', titulo: 'Pelota Oficial', descripcion: 'El balón de la campaña MUG Z', fecha: '30 Abr 2026', likes: 387, comentarios: 52, imagen: '/images/balon_molten.png' },
+  { id: 9, tipo: 'foto', titulo: 'El Estadio Nos Espera', descripcion: 'Tierra de Campeones, sede del lanzamiento', fecha: '2 May 2026', likes: 298, comentarios: 38, imagen: '/images/amateur.png' },
+  { id: 10, tipo: 'foto', titulo: 'Hinchada Comprometida', descripcion: 'Los socios respondieron al llamado', fecha: '5 May 2026', likes: 445, comentarios: 71, imagen: '/images/crack_oyarzo.png' },
 ]
 
 const infoCards = [
@@ -153,11 +159,7 @@ const songsFallback = [
   { id: '10', title: 'Iquique Glorioso y Sano', artist: 'MUG Z', audioUrl: '/audio/track10.mp3', coverUrl: '/images/logo_sesp.png', averageRating: 4.0, totalRatings: 65 },
 ]
 
-// Mock data adaptado con IDs de string para evitar errores de tipo
-const operativosMock: Operativo[] = [
-  { id: 'm1' as any, fecha: '15 Abril 2026', hora: '09:00 - 14:00', lugar: 'Estadio Tierra de Campeones', direccion: 'Av. Playa Brava 1234, Iquique', cupos: 100, cuposDisponibles: 45, estado: 'disponible', imagen: '/images/cdi2.png' },
-  { id: 'm2' as any, fecha: '22 Abril 2026', hora: '09:00 - 14:00', lugar: 'Complejo Deportivo Alto Hospicio', direccion: 'Av. Los Aromos 567, Alto Hospicio', cupos: 80, cuposDisponibles: 80, estado: 'disponible', imagen: '/images/amateur.png' },
-]
+
 
 // ========== COMPONENTE PRINCIPAL ==========
 export default function MeteleGolApp() {
@@ -410,7 +412,7 @@ export default function MeteleGolApp() {
     setIsLoading(true)
     
     // Si es un operativo mock (para demo), lo validamos localmente para no dar error
-    if (selectedOperativo.id.toString().startsWith('m')) {
+    if (selectedOperativo.id.toString().startsWith('demo-')) {
       const currentBadges = Array.isArray(user.badges) ? user.badges : []
       const hasNewBadge = !currentBadges.includes('gol-anotado')
       
