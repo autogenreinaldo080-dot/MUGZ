@@ -141,9 +141,22 @@ const auspiciadores = [
 ]
 
 const songsFallback = [
-  { id: '1', title: 'Himno de la Prevención', artist: 'MUG Z', audioUrl: '/audio/track1.mp3', coverUrl: '/images/cdi2.png', averageRating: 4.8, totalRatings: 156 },
-  { id: '2', title: 'El Gol de tu Vida', artist: 'MUG Z', audioUrl: '/audio/track2.mp3', coverUrl: '/images/amateur.png', averageRating: 4.5, totalRatings: 132 },
-  { id: '3', title: 'Ponte la Camiseta', artist: 'MUG Z', audioUrl: '/audio/track3.mp3', coverUrl: '/images/crack_oyarzo.png', averageRating: 4.7, totalRatings: 98 },
+  { id: '1', title: 'Himno de la Prevención', artist: 'MUG Z', audioUrl: '/audio/track1.mp3', coverUrl: '/images/cdi2.png', averageRating: 4.9, totalRatings: 245 },
+  { id: '2', title: 'El Gol de tu Vida', artist: 'MUG Z', audioUrl: '/audio/track2.mp3', coverUrl: '/images/amateur.png', averageRating: 4.7, totalRatings: 189 },
+  { id: '3', title: 'Ponte la Camiseta', artist: 'MUG Z', audioUrl: '/audio/track3.mp3', coverUrl: '/images/crack_oyarzo.png', averageRating: 4.8, totalRatings: 167 },
+  { id: '4', title: 'Cancha y Salud', artist: 'MUG Z', audioUrl: '/audio/track4.mp3', coverUrl: '/images/logo_impacta.png', averageRating: 4.6, totalRatings: 142 },
+  { id: '5', title: 'Segundo Tiempo Adelante', artist: 'MUG Z', audioUrl: '/audio/track5.mp3', coverUrl: '/images/logo_sesp.png', averageRating: 4.5, totalRatings: 128 },
+  { id: '6', title: 'Victoria Norteña', artist: 'MUG Z', audioUrl: '/audio/track6.mp3', coverUrl: '/images/cdi2.png', averageRating: 4.4, totalRatings: 115 },
+  { id: '7', title: 'La Hinchada no Falla', artist: 'MUG Z', audioUrl: '/audio/track7.mp3', coverUrl: '/images/amateur.png', averageRating: 4.3, totalRatings: 98 },
+  { id: '8', title: 'Cuidarse es de Cracks', artist: 'MUG Z', audioUrl: '/audio/track8.mp3', coverUrl: '/images/crack_oyarzo.png', averageRating: 4.2, totalRatings: 87 },
+  { id: '9', title: 'Pitazo Final Digno', artist: 'MUG Z', audioUrl: '/audio/track9.mp3', coverUrl: '/images/logo_impacta.png', averageRating: 4.1, totalRatings: 76 },
+  { id: '10', title: 'Iquique Glorioso y Sano', artist: 'MUG Z', audioUrl: '/audio/track10.mp3', coverUrl: '/images/logo_sesp.png', averageRating: 4.0, totalRatings: 65 },
+]
+
+// Mock data adaptado con IDs de string para evitar errores de tipo
+const operativosMock: Operativo[] = [
+  { id: 'm1' as any, fecha: '15 Abril 2026', hora: '09:00 - 14:00', lugar: 'Estadio Tierra de Campeones', direccion: 'Av. Playa Brava 1234, Iquique', cupos: 100, cuposDisponibles: 45, estado: 'disponible', imagen: '/images/cdi2.png' },
+  { id: 'm2' as any, fecha: '22 Abril 2026', hora: '09:00 - 14:00', lugar: 'Complejo Deportivo Alto Hospicio', direccion: 'Av. Los Aromos 567, Alto Hospicio', cupos: 80, cuposDisponibles: 80, estado: 'disponible', imagen: '/images/amateur.png' },
 ]
 
 // ========== COMPONENTE PRINCIPAL ==========
@@ -396,6 +409,28 @@ export default function MeteleGolApp() {
     if (!selectedOperativo || !user) return
     setIsLoading(true)
     
+    // Si es un operativo mock (para demo), lo validamos localmente para no dar error
+    if (selectedOperativo.id.toString().startsWith('m')) {
+      const currentBadges = Array.isArray(user.badges) ? user.badges : []
+      const hasNewBadge = !currentBadges.includes('gol-anotado')
+      
+      const updatedUser = { 
+        ...user, 
+        badges: hasNewBadge ? [...currentBadges, 'gol-anotado'] : currentBadges,
+        examenRealizado: true,
+        examenFecha: selectedOperativo.fecha
+      }
+      
+      setUser(updatedUser)
+      setShowOperativoDetail(false)
+      if (hasNewBadge) {
+        setTimeout(() => fireConfetti({ x: 0.5, y: 0.4 }), 400)
+      }
+      toast({ title: '⚽ ¡Examen agendado (Demo)!', description: `Tu examen está programado para el ${selectedOperativo.fecha}.` })
+      setIsLoading(false)
+      return
+    }
+
     const result = await joinOperativo(user.id, selectedOperativo.id.toString())
     
     if (result.success) {
@@ -541,7 +576,7 @@ export default function MeteleGolApp() {
                     <div className="divide-y divide-white/5">
                       {[...livePlaylist]
                         .sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0))
-                        .slice(0, 5)
+                        .slice(0, 10)
                         .map((song, i) => (
                           <div key={song.id} className="p-4 flex items-center gap-4 group hover:bg-white/5 transition-all">
                             <div className="w-6 text-center font-black italic text-primary/40 text-lg">{i + 1}</div>
