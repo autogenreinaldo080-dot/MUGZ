@@ -4,10 +4,12 @@ import Image from 'next/image';
 
 export default function AuspiciadoresGrid() {
   const sponsors = [
-    { src: "/images/logo_gore_v2.png", alt: "GORE Tarapacá", scale: "scale-110 sm:scale-125", filter: "brightness-0 invert opacity-80" },
-    { src: "/images/logo_cdi_v2.png", alt: "Club Deportes Iquique", scale: "scale-110 sm:scale-125", filter: "" },
-    { src: "/images/logo_collahuasi_v2.png", alt: "Collahuasi", scale: "scale-100 sm:scale-110", filter: "" },
-    { src: "/images/logo_afi_v2.png", alt: "AFSI", scale: "scale-100 sm:scale-110", filter: "" }
+    // GORE: Tiene fondo claro y letras oscuras. invert + mix-blend-screen borra el fondo y vuelve blanco el logo.
+    { src: "/images/logo_gorecolor.png", alt: "GORE Tarapacá", scale: "scale-110 sm:scale-125", filter: "invert grayscale contrast-[1.5] mix-blend-screen" },
+    { src: "/images/logo_cdi_white.png", alt: "Club Deportes Iquique", scale: "scale-110 sm:scale-125", filter: "brightness-110" },
+    { src: "/images/logo_collahuasi_trans_white.png", alt: "Collahuasi", scale: "scale-100 sm:scale-110", filter: "brightness-110" },
+    // AFSI: Usando filtros para limpiar el fondo blanco si existe
+    { src: "/images/logo_afsi_color.png", alt: "AFSI", scale: "scale-100 sm:scale-110", filter: "invert grayscale contrast-[1.2] mix-blend-screen brightness-125" }
   ];
 
   return (

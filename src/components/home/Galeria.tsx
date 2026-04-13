@@ -40,8 +40,8 @@ export default function Galeria({ items, onOpenItem }: GaleriaProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        {items.map((item, idx) => (
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {items.slice(0, 10).map((item, idx) => (
           <Card
             key={item.id}
             className="bg-card/90 border-border overflow-hidden group cursor-pointer hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/10"
@@ -79,23 +79,6 @@ export default function Galeria({ items, onOpenItem }: GaleriaProps) {
           </Card>
         ))}
       </div>
-
-      <Card className="bg-gradient-to-br from-primary/10 via-card to-success/10 border-primary/20 overflow-hidden relative group">
-        <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 group-hover:rotate-12 transition-all duration-700">
-            <Camera className="w-32 h-32" />
-        </div>
-        <CardContent className="py-6 text-center relative z-10">
-          <div className="bg-primary/20 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-primary/30">
-            <Camera className="h-6 w-6 text-primary" />
-          </div>
-          <p className="font-black text-white uppercase italic text-sm">¿Tienes fotos de la campaña?</p>
-          <p className="text-xs text-muted-foreground mb-4">Ayúdanos a mostrar la pasión del equipo</p>
-          <Button variant="outline" className="border-primary/50 font-black uppercase text-xs px-6 py-5 rounded-xl hover:bg-primary/20 transition-all">
-            <Share2 className="w-4 h-4 mr-2" />
-            Subir contenido
-          </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 }

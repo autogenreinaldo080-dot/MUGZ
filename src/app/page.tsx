@@ -132,12 +132,18 @@ const leaderboard = [
 
 // Auspiciadores
 const auspiciadores = [
-  { nombre: 'Fundación SESP', logo: '/images/logo_fondo.png', link: '#' },
-  { nombre: 'Impacta', logo: '/images/logo_impacta.png', link: '#' },
-  { nombre: 'Club Deportes Iquique', logo: '/images/logo_cdi.png', link: '#' },
-  { nombre: 'Collahuasi', logo: '/images/logo_collahuasi.png', link: '#' },
-  { nombre: 'GORE Tarapacá', logo: '/images/logo_gore.png', link: '#' },
-  { nombre: 'AFI', logo: '/images/logo_afi.png', link: '#' },
+  { nombre: 'Fundación SESP', logo: '/images/logo_sesp_white.png', link: '#' },
+  { nombre: 'Impacta', logo: '/images/logo_impacta_white.png', link: '#' },
+  { nombre: 'Club Deportes Iquique', logo: '/images/logo_cdi_white.png', link: '#' },
+  { nombre: 'Collahuasi', logo: '/images/logo_collahuasi_trans_white.png', link: '#' },
+  { nombre: 'GORE Tarapacá', logo: '/images/logo_gorecolor_white.png', link: '#' },
+  { nombre: 'AFI', logo: '/images/logo_afi_trans_white.png', link: '#' },
+]
+
+const songsFallback = [
+  { id: '1', title: 'Himno de la Prevención', artist: 'MUG Z', audioUrl: '/audio/track1.mp3', coverUrl: '/images/cdi2.png', averageRating: 4.8, totalRatings: 156 },
+  { id: '2', title: 'El Gol de tu Vida', artist: 'MUG Z', audioUrl: '/audio/track2.mp3', coverUrl: '/images/amateur.png', averageRating: 4.5, totalRatings: 132 },
+  { id: '3', title: 'Ponte la Camiseta', artist: 'MUG Z', audioUrl: '/audio/track3.mp3', coverUrl: '/images/crack_oyarzo.png', averageRating: 4.7, totalRatings: 98 },
 ]
 
 // ========== COMPONENTE PRINCIPAL ==========
@@ -191,8 +197,10 @@ export default function MeteleGolApp() {
         }
 
         const songsData = await getPlaylist()
-        if (songsData.success) {
+        if (songsData.success && songsData.songs.length > 0) {
           setLivePlaylist(songsData.songs)
+        } else {
+          setLivePlaylist(songsFallback)
         }
       } catch (error) {
         console.error("Error loading initial data", error)
@@ -523,9 +531,9 @@ export default function MeteleGolApp() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-black italic text-white uppercase tracking-tighter flex items-center gap-3">
-                    <Music className="w-6 h-6 text-primary drop-shadow-[0_0_8px_rgba(0,212,255,0.4)]" /> Hit List MUG Z
+                    <Music className="w-6 h-6 text-primary drop-shadow-[0_0_8px_rgba(0,212,255,0.4)]" /> Vota por el mejor tema de la campaña
                   </h3>
-                  <Badge variant="outline" className="border-primary/30 text-primary text-[10px] font-black uppercase italic">Vota por tu favorita</Badge>
+                  <Badge variant="outline" className="border-primary/30 text-primary text-[10px] font-black uppercase italic">Top 5</Badge>
                 </div>
 
                 <Card className="bg-card/40 border-border overflow-hidden relative border-none backdrop-blur-sm">
@@ -820,30 +828,16 @@ export default function MeteleGolApp() {
               </div>
 
               <div className="space-y-2">
-                <Label>Tu Club / Equipo *</Label>
-                <Select onValueChange={(value) => setFormData({ ...formData, club: value })}>
-                  <SelectTrigger className="bg-input border-border"><SelectValue placeholder="Selecciona tu club" /></SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="cavancha">Deportivo Cavancha</SelectItem>
-                    <SelectItem value="union">Unión Morro</SelectItem>
-                    <SelectItem value="estella">Estrella de Chile</SelectItem>
-                    <SelectItem value="libre">Agente Libre (Sin club)</SelectItem>
-                    <SelectItem value="otro">OTRO (Escribir abajo)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Tu Club / Asociación (Ligas AFSI) *</Label>
+                <Input 
+                   placeholder="Escribe el nombre de tu club" 
+                   value={formData.club} 
+                   onChange={(e) => setFormData({ ...formData, club: e.target.value })} 
+                   className="bg-input border-border" 
+                />
               </div>
 
-              {formData.club === 'otro' && (
-                <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-                  <Label>Nombre de tu Club *</Label>
-                  <Input
-                    placeholder="Escribe el nombre de tu equipo"
-                    value={formData.otroClub || ''}
-                    onChange={(e) => setFormData({ ...formData, otroClub: e.target.value })}
-                    className="bg-input border-primary/30 border-2"
-                  />
-                </div>
-              )}
+
 
               <div className="flex items-center space-x-2 bg-primary/5 p-3 rounded-lg border border-primary/20">
                 <Checkbox id="terminos" checked={formData.aceptaTerminos} onCheckedChange={(checked) => setFormData({ ...formData, aceptaTerminos: checked as boolean })} />
