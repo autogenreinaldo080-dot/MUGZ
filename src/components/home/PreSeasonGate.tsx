@@ -56,20 +56,20 @@ export default function PreSeasonGate({ onBypass }: PreSeasonGateProps) {
       <div className="relative z-10 w-full max-w-md space-y-8 text-center">
         {/* Logos */}
         <div className="flex justify-center items-center gap-12 mb-4">
-          <div className="relative w-[150px] h-[70px] transition-all duration-500 hover:scale-110">
+          <div className="relative w-[150px] h-[70px] transition-all duration-500 hover:scale-110 drop-shadow-[0_0_15px_rgba(0,255,255,0.4)]">
             <Image 
-              src="/images/logo_sesp.png" 
+              src="/images/logo_sesp_premium.png" 
               alt="SESP" 
               fill 
-              className="object-contain invert contrast-[1.5] brightness-200 mix-blend-screen opacity-90" 
+              className="object-contain mix-blend-screen opacity-90 hover:opacity-100" 
             />
           </div>
-          <div className="relative w-[150px] h-[70px] transition-all duration-500 hover:scale-110">
+          <div className="relative w-[150px] h-[70px] transition-all duration-500 hover:scale-110 drop-shadow-[0_0_15px_rgba(0,255,255,0.4)]">
             <Image 
-              src="/images/logo_impacta.png" 
+              src="/images/logo_impacta_premium.png" 
               alt="Impacta" 
               fill 
-              className="object-contain invert contrast-[1.2] brightness-200 mix-blend-screen opacity-90" 
+              className="object-contain mix-blend-screen opacity-90 hover:opacity-100" 
             />
           </div>
         </div>

@@ -47,20 +47,20 @@ export default function HeroSection({ user, onShowRegistration, onShowLogin, onS
         variants={itemVariants}
         className="flex justify-center items-center gap-12 sm:gap-16 mb-8 p-4 rounded-2xl bg-black/10 md:bg-transparent border border-white/5 md:border-none backdrop-blur-sm md:backdrop-blur-none"
       >
-        <div className="relative w-[130px] h-[80px] sm:w-[160px] sm:h-[100px] transition-all duration-500 hover:scale-125 group cursor-pointer">
+        <div className="relative w-[130px] h-[80px] sm:w-[160px] sm:h-[100px] transition-all duration-500 hover:scale-125 group cursor-pointer drop-shadow-[0_0_20px_rgba(0,255,255,0.3)]">
           <Image
-            src="/images/logo_sesp.png"
+            src="/images/logo_sesp_premium.png"
             alt="Fundación SESP"
             fill
-            className="object-contain opacity-90 group-hover:opacity-100 transition-all duration-500 invert contrast-[1.5] brightness-200 mix-blend-screen"
+            className="object-contain opacity-90 group-hover:opacity-100 transition-all duration-500 mix-blend-screen"
           />
         </div>
-        <div className="relative w-[130px] h-[80px] sm:w-[160px] sm:h-[100px] transition-all duration-500 hover:scale-125 group cursor-pointer">
+        <div className="relative w-[130px] h-[80px] sm:w-[160px] sm:h-[100px] transition-all duration-500 hover:scale-125 group cursor-pointer drop-shadow-[0_0_20px_rgba(0,255,255,0.3)]">
           <Image
-            src="/images/logo_impacta.png"
+            src="/images/logo_impacta_premium.png"
             alt="Consultora Impacta"
             fill
-            className="object-contain opacity-90 group-hover:opacity-100 transition-all duration-500 invert contrast-[1.2] brightness-200 mix-blend-screen"
+            className="object-contain opacity-90 group-hover:opacity-100 transition-all duration-500 mix-blend-screen"
           />
         </div>
       </motion.div>
